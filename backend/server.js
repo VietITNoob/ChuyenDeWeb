@@ -10,9 +10,9 @@ const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
-const adminRoutes = require('./controllers/adminRoutes');
-const sellerRoutes = require('./controllers/sellerRoutes');
-const voucherRoutes = require('./controllers/voucherRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
+const voucherRoutes = require('./routes/voucherRoutes');
 
 dotenv.config();
 connectDB();

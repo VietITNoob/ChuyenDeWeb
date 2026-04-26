@@ -15,6 +15,7 @@ router.get('/profile', protect, async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
+            balance: user.balance || 0,
         });
     } else {
         res.status(404).json({ message: 'Không tìm thấy người dùng' });

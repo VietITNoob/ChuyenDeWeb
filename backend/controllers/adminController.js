@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const Voucher = require('../models/Voucher');
+const WithdrawRequest = require('../models/WithdrawRequest');
 
 const getOverview = async (req, res) => {
     try {
@@ -206,6 +207,81 @@ const deleteReview = async (req, res) => {
     }
 };
 
+const getOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({})
+            .populate('user', 'name email')
+            .populate('orderItems.product', 'title price seller')
+            .sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getWithdrawRequests = async (req, res) => {
+    try {
+        const requests = await WithdrawRequest.find({})
+            .populate('seller', 'name email')
+            .sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const approveWithdrawRequest = async (req, res) => {
+    try {
+        const request = await WithdrawRequest.findById(req.params.id);
+
+        if (!request) {
+            return res.status(404).json({ message: 'Không tìm thấy yêu cầu rút tiền.' });
+        }
+
+        if (request.status !== 'pending') {
+            return res.status(400).json({ message: 'Yêu cầu rút tiền này đã được xử lý rồi.' });
+        }
+
+        request.status = 'approved';
+        await request.save();
+
+        res.json({ message: 'Đã duyệt yêu cầu rút tiền thành công.', request });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const rejectWithdrawRequest = async (req, res) => {
+    try {
+        const { reason } = req.body;
+
+        if (!reason || reason.trim().length < 5) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp lý do từ chối (tối thiểu 5 ký tự).' });
+        }
+
+        const request = await WithdrawRequest.findById(req.params.id);
+
+        if (!request) {
+            return res.status(404).json({ message: 'Không tìm thấy yêu cầu rút tiền.' });
+        }
+
+        if (request.status !== 'pending') {
+            return res.status(400).json({ message: 'Yêu cầu rút tiền này đã được xử lý rồi.' });
+        }
+
+        request.status = 'rejected';
+        request.rejectionReason = reason;
+        await request.save();
+
+        // Hoàn lại tiền vào số dư của Seller
+        await User.findByIdAndUpdate(request.seller, { $inc: { balance: request.amount } });
+
+        res.json({ message: 'Đã từ chối yêu cầu rút tiền và hoàn lại số dư cho người bán.', request });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getOverview,
     getProducts,
@@ -217,4 +293,8 @@ module.exports = {
     toggleProductLock,
     getReviews,
     deleteReview,
+    getOrders,
+    getWithdrawRequests,
+    approveWithdrawRequest,
+    rejectWithdrawRequest,
 };
