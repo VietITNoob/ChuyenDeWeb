@@ -54,6 +54,10 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
 
         // Kiểm tra user có tồn tại và mật khẩu có khớp không
+        if (user && user.isBlocked) {
+            return res.status(403).json({ message: 'Tai khoan cua ban da bi khoa.' });
+        }
+
         if (user && (await user.matchPassword(password))) {
             res.json({
                 _id: user._id,
@@ -196,6 +200,10 @@ const googleLogin = async (req, res) => {
             }
         }
 
+        if (user.isBlocked) {
+            return res.status(403).json({ message: 'Tai khoan cua ban da bi khoa.' });
+        }
+
         // Trả về JWT giống như đăng nhập thường
         res.json({
             _id: user._id,
@@ -212,4 +220,4 @@ const googleLogin = async (req, res) => {
 };
 
 module.exports = { registerUser, loginUser, forgotPassword, resetPassword, googleLogin };
-
+
