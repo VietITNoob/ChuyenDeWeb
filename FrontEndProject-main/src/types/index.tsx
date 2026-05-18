@@ -20,6 +20,8 @@ export interface Product {
     rating: number;
     numReviews: number;
     isApproved: boolean;
+    isLocked?: boolean;
+    rejectionReason?: string;
     createdAt: string;
     updatedAt: string;
 
@@ -84,11 +86,36 @@ export interface User {
     name: string;            // Backend dùng `name`, không phải firstName/lastName
     email: string;
     role: 'buyer' | 'seller' | 'admin';
+    isBlocked?: boolean;
     // Các field cũ giữ lại
     firstName?: string;
     lastName?: string;
     phone?: string;
     country?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface Voucher {
+    _id: string;
+    code: string;
+    seller: {
+        _id: string;
+        name: string;
+        email: string;
+    } | string;
+    discountType: 'percent' | 'fixed';
+    discountValue: number;
+    applicableProducts: Product[];
+    startDate: string;
+    endDate: string;
+    usageLimit: number;
+    usedCount: number;
+    isActive: boolean;
+    status?: 'pending' | 'approved' | 'rejected';
+    rejectionReason?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 // =============================================
@@ -99,6 +126,7 @@ export interface OrderItem {
     title: string;
     price: number;
     image: string;
+    quantity?: number;
 }
 
 export interface Order {
@@ -106,6 +134,8 @@ export interface Order {
     user: string;
     orderItems: OrderItem[];
     paymentMethod: string;
+    voucherCode?: string;
+    discountAmount?: number;
     totalPrice: number;
     isPaid: boolean;
     paidAt?: string;

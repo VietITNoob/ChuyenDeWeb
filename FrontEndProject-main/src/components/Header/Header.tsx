@@ -213,15 +213,24 @@ const Header = () => {
                           <User size={16} /> Thông tin tài khoản
                         </Link>
                       </li>
-                      <li>
-                        <Link to="/account/home" className="flex items-center gap-2.5 px-5 py-2.5 text-[#424245] text-[14px] no-underline w-full hover:bg-apple-lightbg hover:text-apple-blue transition-colors">
-                          <Package size={16} /> Đơn hàng của tôi
-                        </Link>
-                      </li>
+                      {user.role === 'buyer' && (
+                        <li>
+                          <Link to="/account/home" className="flex items-center gap-2.5 px-5 py-2.5 text-[#424245] text-[14px] no-underline w-full hover:bg-apple-lightbg hover:text-apple-blue transition-colors">
+                            <Package size={16} /> Đơn hàng của tôi
+                          </Link>
+                        </li>
+                      )}
                       {user.role === 'admin' && (
                         <li>
                           <Link to="/admin" className="flex items-center gap-2.5 px-5 py-2.5 text-[#424245] text-[14px] no-underline w-full hover:bg-apple-lightbg hover:text-apple-blue transition-colors">
                             <Package size={16} /> Quản trị viên
+                          </Link>
+                        </li>
+                      )}
+                      {user.role === 'seller' && (
+                        <li>
+                          <Link to="/seller" className="flex items-center gap-2.5 px-5 py-2.5 text-[#424245] text-[14px] no-underline w-full hover:bg-apple-lightbg hover:text-apple-blue transition-colors">
+                            <Package size={16} /> Kênh người bán
                           </Link>
                         </li>
                       )}

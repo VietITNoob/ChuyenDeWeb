@@ -4,7 +4,8 @@ import axiosClient from '../api/axiosClient';
 export interface CreateOrderData {
     orderItems: OrderItem[];
     paymentMethod: string;  // "VNPay" | "COD"
-    totalPrice: number;
+    totalPrice?: number;
+    voucherCode?: string;
 }
 
 export interface SellerStats {
