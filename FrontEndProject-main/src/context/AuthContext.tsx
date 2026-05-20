@@ -11,6 +11,7 @@ export interface AuthUser {
     email: string;
     role: 'buyer' | 'seller' | 'admin';
     avatar?: string;
+    phone?: string;
 }
 
 // =============================================

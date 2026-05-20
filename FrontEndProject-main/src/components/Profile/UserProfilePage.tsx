@@ -56,7 +56,7 @@ const UserProfilePage = () => {
         {/* --- HEADER GREETING --- */}
         <div className="pt-[50px] pb-10 border-b border-[#e5e5e5] mb-10 flex justify-between items-start">
           <div>
-            <h1 className="text-[32px] md:text-[40px] font-bold m-0 tracking-[-0.01em]">Hi, {user.firstName || "Developer"}.</h1>
+            <h1 className="text-[32px] md:text-[40px] font-bold m-0 tracking-[-0.01em]">Hi, {user.name || "Developer"}.</h1>
             <p className="text-[16px] text-apple-gray mt-1.5">{user.email}</p>
           </div>
           <button onClick={logout} className="text-[14px] text-apple-blue bg-transparent border-none cursor-pointer p-0 hover:underline">Sign out &rsaquo;</button>
@@ -157,7 +157,7 @@ const UserProfilePage = () => {
             <div className="mt-auto">
                 <div className="flex justify-between border-b border-[#f0f0f0] py-2.5 text-[14px]">
                     <span className="text-apple-gray">Name</span>
-                    <span className="font-medium text-[#1d1d1f]">{user.firstName} {user.lastName}</span>
+                    <span className="font-medium text-[#1d1d1f]">{user.name}</span>
                 </div>
                 <div className="flex justify-between border-b border-[#f0f0f0] py-2.5 text-[14px]">
                     <span className="text-apple-gray">Email</span>
