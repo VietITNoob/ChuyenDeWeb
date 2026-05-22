@@ -8,6 +8,7 @@ import ProductsPage from "../components/Products/ProductsPage.tsx";
 import CartPage from '../pages/Cart/CartPage';
 import WishlistPage from '../pages/Wishlist/WishlistPage';
 import UserProfilePage from '../components/Profile/UserProfilePage.tsx';
+import EditProfilePage from '../pages/Profile/EditProfilePage.tsx';
 import OrderDetailsPage from '../pages/Order/OrderDetailsPage.tsx';
 import MobilePage from '../pages/Mobile/MobilePage.tsx';
 import WebPage from '../pages/Web/WebPage.tsx';
@@ -62,6 +63,10 @@ export const router = createBrowserRouter([
   {
     path: "/account/home",
     element: <UserProfilePage />
+  },
+  {
+    path: "/profile/edit",
+    element: <EditProfilePage />
   },
   {
     path: '/orders/:id',
