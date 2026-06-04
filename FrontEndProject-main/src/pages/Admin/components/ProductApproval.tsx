@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { productService } from '../../../service/productService';
 import type { Product } from '../../../types';
 import { Loader2, PackageOpen, CheckCircle, XCircle, X } from 'lucide-react';
+import { useToast } from '../../../context/ToastContext';
+import { ConfirmModal } from '../../../components/UI/ConfirmModal';
 
 // Modal từ chối sản phẩm
 interface RejectModalProps {
@@ -25,8 +27,8 @@ const RejectModal: React.FC<RejectModalProps> = ({ productTitle, onConfirm, onCa
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-            <div className="bg-white rounded-[24px] shadow-[0_24px_60px_rgba(0,0,0,0.18)] w-full max-w-[480px] animate-[fadeInUp_0.2s_ease]">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2500] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[24px] shadow-[0_24px_60px_rgba(0,0,0,0.18)] w-full max-w-[480px]">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-[#e5e5ea]">
                     <div className="flex items-center gap-3">
@@ -88,18 +90,17 @@ const RejectModal: React.FC<RejectModalProps> = ({ productTitle, onConfirm, onCa
 
 // Component chính
 const ProductApproval: React.FC = () => {
+    const { showToast } = useToast();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [approvingId, setApprovingId] = useState<string | null>(null);
     const [rejectingId, setRejectingId] = useState<string | null>(null);
     const [rejectModalProduct, setRejectModalProduct] = useState<Product | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-    const showToast = (message: string, type: 'success' | 'error') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3500);
-    };
+    // ConfirmModal States
+    const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+    const [approveTargetId, setApproveTargetId] = useState<string | null>(null);
 
     const fetchProducts = async () => {
         try {
@@ -116,18 +117,24 @@ const ProductApproval: React.FC = () => {
         fetchProducts();
     }, []);
 
-    const handleApprove = async (id: string) => {
-        if (!window.confirm('Bạn có chắc chắn muốn duyệt sản phẩm này để đăng bán?')) return;
+    const handleApproveClick = (id: string) => {
+        setApproveTargetId(id);
+        setIsApproveModalOpen(true);
+    };
 
+    const confirmApprove = async () => {
+        if (!approveTargetId) return;
+        const id = approveTargetId;
         setApprovingId(id);
         try {
             await productService.approveProduct(id);
-            setProducts(products.filter(p => p._id !== id));
-            showToast('✅ Đã duyệt sản phẩm thành công!', 'success');
+            setProducts((prev) => prev.filter((p) => p._id !== id));
+            showToast('Đã duyệt sản phẩm thành công!');
         } catch (err: any) {
             showToast(err.response?.data?.message || 'Lỗi khi duyệt sản phẩm', 'error');
         } finally {
             setApprovingId(null);
+            setApproveTargetId(null);
         }
     };
 
@@ -140,7 +147,7 @@ const ProductApproval: React.FC = () => {
             await productService.rejectProduct(id, reason);
             setProducts(products.filter(p => p._id !== id));
             setRejectModalProduct(null);
-            showToast('🚫 Đã từ chối sản phẩm và thông báo cho Seller.', 'success');
+            showToast('Đã từ chối sản phẩm và gửi lý do cho Seller.');
         } catch (err: any) {
             showToast(err.response?.data?.message || 'Lỗi khi từ chối sản phẩm', 'error');
         } finally {
@@ -162,13 +169,6 @@ const ProductApproval: React.FC = () => {
 
     return (
         <>
-            {/* Toast Notification */}
-            {toast && (
-                <div className={`fixed top-6 right-6 z-[300] px-5 py-4 rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] text-[15px] font-medium transition-all duration-300 ${toast.type === 'success' ? 'bg-white text-apple-dark border-l-4 border-[#30d158]' : 'bg-white text-[#ff3b30] border-l-4 border-[#ff3b30]'}`}>
-                    {toast.message}
-                </div>
-            )}
-
             {/* Modal từ chối */}
             {rejectModalProduct && (
                 <RejectModal
@@ -199,7 +199,7 @@ const ProductApproval: React.FC = () => {
                         </thead>
                         <tbody>
                             {products.map((product) => (
-                                <tr key={product._id} className="last:border-b-0 border-b border-[#e5e5ea]">
+                                <tr key={product._id} className="last:border-b-0 border-b border-[#e5e5ea] hover:bg-[#f9f9fb] transition-colors">
                                     <td className="p-4 text-[15px] text-apple-dark align-middle">
                                         <img src={product.image} alt={product.title} className="w-12 h-12 rounded-lg object-cover" />
                                     </td>
@@ -221,7 +221,7 @@ const ProductApproval: React.FC = () => {
                                             {/* Nút Duyệt */}
                                             <button
                                                 className="py-2 px-4 bg-apple-blue text-white border-none rounded-full text-[13px] font-semibold cursor-pointer transition-all duration-200 flex items-center gap-1.5 hover:bg-[#0077ed] hover:scale-105 disabled:bg-[#d2d2d7] disabled:cursor-not-allowed disabled:scale-100"
-                                                onClick={() => handleApprove(product._id as string)}
+                                                onClick={() => handleApproveClick(product._id as string)}
                                                 disabled={approvingId === product._id || rejectingId === product._id}
                                             >
                                                 {approvingId === product._id ? (
@@ -251,6 +251,19 @@ const ProductApproval: React.FC = () => {
                     </table>
                 )}
             </div>
+
+            {/* ConfirmModal for Approving */}
+            <ConfirmModal
+                isOpen={isApproveModalOpen}
+                onClose={() => {
+                  setIsApproveModalOpen(false);
+                  setApproveTargetId(null);
+                }}
+                onConfirm={confirmApprove}
+                title="Duyệt sản phẩm"
+                message="Bạn có chắc chắn muốn duyệt sản phẩm này để đăng bán công khai không?"
+                confirmText="Duyệt sản phẩm"
+            />
         </>
     );
 };

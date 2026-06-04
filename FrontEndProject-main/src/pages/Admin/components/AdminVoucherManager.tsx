@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Gift, Loader2 } from 'lucide-react';
 import { voucherService } from '../../../service/voucherService';
 import type { Voucher } from '../../../types';
-
-type Toast = { type: 'success' | 'error'; message: string } | null;
+import { useToast } from '../../../context/ToastContext';
+import { ConfirmModal } from '../../../components/UI/ConfirmModal';
+import { PromptModal } from '../../../components/UI/PromptModal';
 
 const money = (value: number) => new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -15,16 +16,18 @@ const getErrorMessage = (error: any, fallback: string) => {
 };
 
 const AdminVoucherManager: React.FC = () => {
+    const { showToast } = useToast();
     const [vouchers, setVouchers] = useState<Voucher[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionId, setActionId] = useState<string | null>(null);
     const [error, setError] = useState('');
-    const [toast, setToast] = useState<Toast>(null);
 
-    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-        setToast({ message, type });
-        window.setTimeout(() => setToast(null), 3000);
-    };
+    // Modal states
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
 
     const loadVouchers = async () => {
         setLoading(true);
@@ -53,7 +56,7 @@ const AdminVoucherManager: React.FC = () => {
         try {
             await voucherService.toggleVoucher(voucher._id, nextActive);
             patchVoucher(voucher._id, { isActive: nextActive });
-            showToast(nextActive ? 'Đã bật voucher.' : 'Đã tắt voucher.');
+            showToast(nextActive ? 'Đã bật hoạt động voucher!' : 'Đã tạm tắt voucher!');
         } catch (err: any) {
             showToast(getErrorMessage(err, 'Không thể cập nhật voucher.'), 'error');
         } finally {
@@ -66,7 +69,7 @@ const AdminVoucherManager: React.FC = () => {
         try {
             await voucherService.approveVoucher(id);
             patchVoucher(id, { status: 'approved', rejectionReason: '', isActive: true });
-            showToast('Đã duyệt voucher.');
+            showToast('Đã duyệt voucher thành công!');
         } catch (err: any) {
             showToast(getErrorMessage(err, 'Không thể duyệt voucher.'), 'error');
         } finally {
@@ -74,34 +77,45 @@ const AdminVoucherManager: React.FC = () => {
         }
     };
 
-    const handleReject = async (id: string) => {
-        const reason = window.prompt('Nhập lý do từ chối voucher');
-        if (!reason || reason.trim().length < 5) return;
+    const handleRejectClick = (id: string) => {
+        setRejectTargetId(id);
+        setIsRejectModalOpen(true);
+    };
 
+    const handleRejectConfirm = async (reason: string) => {
+        if (!rejectTargetId || !reason.trim()) return;
+        const id = rejectTargetId;
         setActionId(`reject-${id}`);
         try {
             await voucherService.rejectVoucher(id, reason.trim());
             patchVoucher(id, { status: 'rejected', rejectionReason: reason.trim(), isActive: false });
-            showToast('Đã từ chối voucher.');
+            showToast('Đã từ chối duyệt voucher.');
         } catch (err: any) {
             showToast(getErrorMessage(err, 'Không thể từ chối voucher.'), 'error');
         } finally {
             setActionId(null);
+            setRejectTargetId(null);
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Xóa voucher này?')) return;
+    const handleDeleteClick = (id: string) => {
+        setDeleteTargetId(id);
+        setIsDeleteModalOpen(true);
+    };
 
+    const confirmDelete = async () => {
+        if (!deleteTargetId) return;
+        const id = deleteTargetId;
         setActionId(`delete-${id}`);
         try {
             await voucherService.deleteVoucher(id);
             setVouchers((current) => current.filter((voucher) => voucher._id !== id));
-            showToast('Đã xóa voucher.');
+            showToast('Đã xóa voucher thành công!');
         } catch (err: any) {
             showToast(getErrorMessage(err, 'Không thể xóa voucher.'), 'error');
         } finally {
             setActionId(null);
+            setDeleteTargetId(null);
         }
     };
 
@@ -115,12 +129,6 @@ const AdminVoucherManager: React.FC = () => {
 
     return (
         <div className="relative">
-            {toast && (
-                <div className={`fixed top-5 right-5 z-[500] rounded-lg px-5 py-3 text-sm font-semibold shadow-lg border ${toast.type === 'success' ? 'bg-white text-[#1e8e3e] border-[#cce8d5]' : 'bg-white text-[#d70015] border-[#ffd0d0]'}`}>
-                    {toast.message}
-                </div>
-            )}
-
             <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-6 mb-6 overflow-x-auto">
                 {vouchers.length === 0 ? (
                     <div className="text-center py-[60px] px-5 text-apple-gray">
@@ -148,7 +156,7 @@ const AdminVoucherManager: React.FC = () => {
                                 const deleting = actionId === `delete-${voucher._id}`;
 
                                 return (
-                                    <tr key={voucher._id} className="border-b border-[#e5e5ea] last:border-b-0">
+                                    <tr key={voucher._id} className="border-b border-[#e5e5ea] last:border-b-0 hover:bg-[#f9f9fb] transition-colors">
                                         <td className="p-4 font-semibold text-apple-dark">{voucher.code}</td>
                                         <td className="p-4 text-apple-dark">{typeof voucher.seller === 'object' ? voucher.seller.name : voucher.seller}</td>
                                         <td className="p-4 text-apple-dark">{voucher.discountType === 'percent' ? `${voucher.discountValue}%` : money(voucher.discountValue)}</td>
@@ -163,25 +171,25 @@ const AdminVoucherManager: React.FC = () => {
                                                 {voucher.isActive ? 'Đang bật' : 'Đang tắt'}
                                             </span>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 text-apple-dark align-middle">
                                             <div className="flex gap-2">
                                                 {voucher.status !== 'approved' && (
-                                                    <button type="button" disabled={!!actionId} onClick={() => handleApprove(voucher._id)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#0071e3] text-white border-none cursor-pointer disabled:opacity-60">
+                                                    <button type="button" disabled={!!actionId} onClick={() => handleApprove(voucher._id)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#0071e3] text-white border-none cursor-pointer disabled:opacity-60 hover:bg-[#0077ed] active:scale-95 transition-all">
                                                         {approving && <Loader2 size={14} className="animate-spin" />}
                                                         Duyệt
                                                     </button>
                                                 )}
                                                 {voucher.status !== 'rejected' && (
-                                                    <button type="button" disabled={!!actionId} onClick={() => handleReject(voucher._id)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#fff4d6] text-[#a15c00] border-none cursor-pointer disabled:opacity-60">
+                                                    <button type="button" disabled={!!actionId} onClick={() => handleRejectClick(voucher._id)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#fff4d6] text-[#a15c00] border-none cursor-pointer disabled:opacity-60 hover:bg-[#ffe082] active:scale-95 transition-all">
                                                         {rejecting && <Loader2 size={14} className="animate-spin" />}
                                                         Từ chối
                                                     </button>
                                                 )}
-                                                <button type="button" disabled={!!actionId} onClick={() => handleToggle(voucher)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#f5f5f7] text-apple-dark border-none cursor-pointer disabled:opacity-60">
+                                                <button type="button" disabled={!!actionId} onClick={() => handleToggle(voucher)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#f5f5f7] text-apple-dark border-none cursor-pointer disabled:opacity-60 hover:bg-[#e5e5ea] active:scale-95 transition-all">
                                                     {toggling && <Loader2 size={14} className="animate-spin" />}
                                                     {voucher.isActive ? 'Tắt' : 'Bật'}
                                                 </button>
-                                                <button type="button" disabled={!!actionId} onClick={() => handleDelete(voucher._id)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#fff0ef] text-[#ff3b30] border-none cursor-pointer disabled:opacity-60">
+                                                <button type="button" disabled={!!actionId} onClick={() => handleDeleteClick(voucher._id)} className="inline-flex items-center gap-1 py-2 px-3 rounded-lg bg-[#fff0ef] text-[#ff3b30] border-none cursor-pointer disabled:opacity-60 hover:bg-[#ffcdd2] active:scale-95 transition-all">
                                                     {deleting && <Loader2 size={14} className="animate-spin" />}
                                                     Xóa
                                                 </button>
@@ -194,6 +202,34 @@ const AdminVoucherManager: React.FC = () => {
                     </table>
                 )}
             </div>
+
+            {/* Reusable ConfirmModal for deletion */}
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setDeleteTargetId(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Xóa voucher"
+                message="Bạn có chắc chắn muốn xóa mã giảm giá này không? Hành động này sẽ vô hiệu hóa việc áp dụng mã giảm giá này."
+                confirmText="Xóa voucher"
+                isDanger={true}
+            />
+
+            {/* Reusable PromptModal for rejection reason */}
+            <PromptModal
+                isOpen={isRejectModalOpen}
+                onClose={() => {
+                    setIsRejectModalOpen(false);
+                    setRejectTargetId(null);
+                }}
+                onSubmit={handleRejectConfirm}
+                title="Từ chối voucher"
+                label="Lý do từ chối"
+                placeholder="Nhập lý do từ chối (ít nhất 5 ký tự)..."
+                submitText="Từ chối voucher"
+            />
         </div>
     );
 };
