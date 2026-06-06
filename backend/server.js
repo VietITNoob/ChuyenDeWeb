@@ -2,20 +2,24 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const productRoutes = require('./routes/productRoutes');
 
-// Tải các biến từ file .env
 dotenv.config();
-
-// Kết nối cơ sở dữ liệu
 connectDB();
 
 const app = express();
 
-// Middlewares cơ bản
-app.use(cors()); // Cho phép Frontend gọi API
-app.use(express.json()); // Cho phép server đọc dữ liệu JSON gửi từ Client
+app.use(cors());
+app.use(express.json());
 
-// Route test cơ bản
+
+// Sử dụng Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+
 app.get('/', (req, res) => {
     res.send('CodeStore Backend API is running...');
 });
