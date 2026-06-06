@@ -15,11 +15,11 @@ const userSchema = new mongoose.Schema({
 // Middleware: Tự động mã hóa mật khẩu trước khi lưu (save) vào DB
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
-        return next();
+        return ;
     }
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
+
 });
 
 // Hàm hỗ trợ: Kiểm tra mật khẩu khi đăng nhập
