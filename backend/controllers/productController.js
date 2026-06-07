@@ -19,6 +19,21 @@ const getProducts = async (req, res) => {
     }
 };
 
+// Lấy chi tiết một sản phẩm theo ID
+const getProductById = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id)
+            .populate('seller', 'name email');
+        if (product) {
+            res.json(product);
+        } else {
+            res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 
 const createProduct = async (req, res) => {
     try {
@@ -67,4 +82,4 @@ const approveProduct = async (req, res) => {
         res.status(500).json({message: error.message});
     }
 }
-module.exports = { getProducts, createProduct,getUnapprovedProducts, approveProduct };
+module.exports = { getProducts, getProductById, createProduct, getUnapprovedProducts, approveProduct };

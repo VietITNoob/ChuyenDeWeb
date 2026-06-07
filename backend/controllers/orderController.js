@@ -28,7 +28,7 @@ const addOrderItems = async (req, res) => {
 const getMyOrders = async (req, res) => {
     try {
 
-        const orders = await Order.find({ user: req.user._id, isPaid: true })
+        const orders = await Order.find({ user: req.user._id })
             .populate('orderItems.product', 'sourceCodeFile');
         // Lấy thêm đường dẫn file zip từ bảng Product để user tải
         res.json(orders);
