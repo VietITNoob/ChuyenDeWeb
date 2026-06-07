@@ -1,8 +1,7 @@
 const Order = require('../models/Order');
+const Product = require('../models/Product');
 
-// @desc    Tạo đơn hàng mới
-// @route   POST /api/orders
-// @access  Private (Chỉ user đã đăng nhập mới được tạo)
+
 const addOrderItems = async (req, res) => {
     try {
         const { orderItems, paymentMethod, totalPrice } = req.body;
@@ -25,13 +24,11 @@ const addOrderItems = async (req, res) => {
     }
 };
 
-// @desc    Lấy danh sách các đơn hàng đã mua của User (Kho tải xuống)
-// @route   GET /api/orders/myorders
-// @access  Private
+
 const getMyOrders = async (req, res) => {
     try {
-        // Tìm các đơn hàng thuộc về user này và ĐÃ THANH TOÁN
-        const orders = await Order.find({ user: req.user._id, isPaid: true })
+
+        const orders = await Order.find({ user: req.user._id })
             .populate('orderItems.product', 'sourceCodeFile');
         // Lấy thêm đường dẫn file zip từ bảng Product để user tải
         res.json(orders);
@@ -39,5 +36,39 @@ const getMyOrders = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+const getSellerStats = async (req, res) => {
+    try {
 
-module.exports = { addOrderItems, getMyOrders };
+        const paidOrders = await Order.find({ isPaid: true }).populate('orderItems.product');
+
+        let totalRevenue = 0;
+        let totalSold = 0;
+        let soldItemsDetails = [];
+
+
+        paidOrders.forEach(order => {
+            order.orderItems.forEach(item => {
+
+                if (item.product && item.product.seller.toString() === req.user._id.toString()) {
+                    totalRevenue += item.price;
+                    totalSold += 1;
+                    soldItemsDetails.push({
+                        orderId: order._id,
+                        productName: item.title,
+                        price: item.price,
+                        date: order.paidAt
+                    });
+                }
+            });
+        });
+
+        res.json({
+            totalSold,
+            totalRevenue,
+            details: soldItemsDetails
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+module.exports = { addOrderItems, getMyOrders,getSellerStats };
