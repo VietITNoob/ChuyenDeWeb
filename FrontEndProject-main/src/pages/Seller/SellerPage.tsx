@@ -221,6 +221,7 @@ const VoucherPanel = ({ products, vouchers, onChanged }: { products: Product[]; 
         isActive: true,
     });
     const [loading, setLoading] = useState(false);
+    const [actionId, setActionId] = useState<string | null>(null);
     const [message, setMessage] = useState('');
 
     const toggleProduct = (productId: string) => {
@@ -254,7 +255,7 @@ const VoucherPanel = ({ products, vouchers, onChanged }: { products: Product[]; 
                 usageLimit: 100,
                 isActive: true,
             });
-            setMessage('Da tao voucher.');
+            setMessage('Da tao voucher. Voucher dang cho admin duyet.');
             onChanged();
         } catch (error: any) {
             setMessage(error.response?.data?.message || 'Khong the tao voucher.');
@@ -264,14 +265,32 @@ const VoucherPanel = ({ products, vouchers, onChanged }: { products: Product[]; 
     };
 
     const handleToggle = async (voucher: Voucher) => {
-        await voucherService.toggleVoucher(voucher._id, !voucher.isActive);
-        onChanged();
+        setActionId(`toggle-${voucher._id}`);
+        setMessage('');
+        try {
+            await voucherService.toggleVoucher(voucher._id, !voucher.isActive);
+            setMessage(voucher.isActive ? 'Da tat voucher.' : 'Da bat voucher.');
+            onChanged();
+        } catch (error: any) {
+            setMessage(error.response?.data?.message || 'Khong the cap nhat voucher.');
+        } finally {
+            setActionId(null);
+        }
     };
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('Xoa voucher nay?')) return;
-        await voucherService.deleteVoucher(id);
-        onChanged();
+        setActionId(`delete-${id}`);
+        setMessage('');
+        try {
+            await voucherService.deleteVoucher(id);
+            setMessage('Da xoa voucher.');
+            onChanged();
+        } catch (error: any) {
+            setMessage(error.response?.data?.message || 'Khong the xoa voucher.');
+        } finally {
+            setActionId(null);
+        }
     };
 
     return (
@@ -354,8 +373,14 @@ const VoucherPanel = ({ products, vouchers, onChanged }: { products: Product[]; 
                                 <td className="p-4">{voucher.usedCount}/{voucher.usageLimit}</td>
                                 <td className="p-4">
                                     <div className="flex gap-2">
-                                        <button className="rounded-lg bg-[#f5f5f7] px-3 py-2 text-sm" onClick={() => handleToggle(voucher)}>{voucher.isActive ? 'Tat' : 'Bat'}</button>
-                                        <button className="rounded-lg bg-[#ffecec] text-[#d70015] px-3 py-2 text-sm" onClick={() => handleDelete(voucher._id)}>Xoa</button>
+                                        <button type="button" disabled={!!actionId} className="inline-flex items-center gap-1 rounded-lg bg-[#f5f5f7] px-3 py-2 text-sm disabled:opacity-60" onClick={() => handleToggle(voucher)}>
+                                            {actionId === `toggle-${voucher._id}` && <Loader2 size={14} className="animate-spin" />}
+                                            {voucher.isActive ? 'Tat' : 'Bat'}
+                                        </button>
+                                        <button type="button" disabled={!!actionId} className="inline-flex items-center gap-1 rounded-lg bg-[#ffecec] text-[#d70015] px-3 py-2 text-sm disabled:opacity-60" onClick={() => handleDelete(voucher._id)}>
+                                            {actionId === `delete-${voucher._id}` && <Loader2 size={14} className="animate-spin" />}
+                                            Xoa
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
