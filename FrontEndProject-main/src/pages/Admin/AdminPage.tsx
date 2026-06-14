@@ -5,6 +5,7 @@ import {
   BarChart3,
   Gift,
   LayoutDashboard,
+  Loader2,
   LogOut,
   Package,
   RefreshCw,
@@ -23,11 +24,26 @@ import AdminVoucherManager from './components/AdminVoucherManager';
 import ReviewManager from './components/ReviewManager';
 
 type AdminTab = 'overview' | 'users' | 'approvals' | 'products' | 'vouchers' | 'reviews';
+type Toast = { type: 'success' | 'error'; message: string } | null;
 
 const formatMoney = (value: number) => new Intl.NumberFormat('vi-VN', {
   style: 'currency',
   currency: 'VND',
 }).format(value || 0);
+
+const getErrorMessage = (error: any, fallback: string) => {
+  return error?.response?.data?.message || error?.message || fallback;
+};
+
+const ToastBox = ({ toast }: { toast: Toast }) => {
+  if (!toast) return null;
+
+  return (
+    <div className={`fixed top-5 right-5 z-[500] rounded-lg px-5 py-3 text-sm font-semibold shadow-lg border ${toast.type === 'success' ? 'bg-white text-[#1e8e3e] border-[#cce8d5]' : 'bg-white text-[#d70015] border-[#ffd0d0]'}`}>
+      {toast.message}
+    </div>
+  );
+};
 
 const StatCard = ({
   label,
@@ -80,9 +96,10 @@ const AdminOverviewPanel = ({ overview }: { overview: AdminOverview | null }) =>
   </div>
 );
 
-const AdminProductManager = () => {
+const AdminProductManager = ({ showToast }: { showToast: (message: string, type?: 'success' | 'error') => void }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const loadProducts = async () => {
@@ -92,7 +109,7 @@ const AdminProductManager = () => {
       const data = await adminService.getProducts();
       setProducts(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Không thể tải danh sách source.');
+      setError(getErrorMessage(err, 'Không thể tải danh sách source.'));
     } finally {
       setLoading(false);
     }
@@ -102,14 +119,35 @@ const AdminProductManager = () => {
     loadProducts();
   }, []);
 
+  const updateProductState = (id: string, patch: Partial<Product>) => {
+    setProducts((current) => current.map((product) => product._id === id ? { ...product, ...patch } : product));
+  };
+
   const approve = async (id: string) => {
-    await productService.approveProduct(id);
-    loadProducts();
+    setActionId(`approve-${id}`);
+    try {
+      await productService.approveProduct(id);
+      updateProductState(id, { isApproved: true, rejectionReason: '' });
+      showToast('Đã duyệt source.');
+    } catch (err: any) {
+      showToast(getErrorMessage(err, 'Không thể duyệt source.'), 'error');
+    } finally {
+      setActionId(null);
+    }
   };
 
   const toggleLock = async (product: Product) => {
-    await adminService.toggleProductLock(product._id, !product.isLocked);
-    loadProducts();
+    const nextLocked = !product.isLocked;
+    setActionId(`lock-${product._id}`);
+    try {
+      await adminService.toggleProductLock(product._id, nextLocked);
+      updateProductState(product._id, { isLocked: nextLocked });
+      showToast(nextLocked ? 'Đã khóa source.' : 'Đã mở khóa source.');
+    } catch (err: any) {
+      showToast(getErrorMessage(err, 'Không thể cập nhật trạng thái source.'), 'error');
+    } finally {
+      setActionId(null);
+    }
   };
 
   if (loading) {
@@ -129,47 +167,64 @@ const AdminProductManager = () => {
             <th className="p-4 text-sm text-[#6e6e73]">Seller</th>
             <th className="p-4 text-sm text-[#6e6e73]">Giá</th>
             <th className="p-4 text-sm text-[#6e6e73]">Nền tảng</th>
-            <th className="p-4 text-sm text-[#6e6e73]">Trạng thái</th>
-            <th className="p-4 text-sm text-[#6e6e73]">Khóa bán</th>
+            <th className="p-4 text-sm text-[#6e6e73]">Duyệt</th>
+            <th className="p-4 text-sm text-[#6e6e73]">Bán hàng</th>
             <th className="p-4 text-sm text-[#6e6e73]">Hành động</th>
           </tr>
         </thead>
         <tbody>
-          {products.map((product) => (
-            <tr key={product._id} className="border-b border-[#f2f2f2] last:border-b-0">
-              <td className="p-4">
-                <div className="font-semibold text-[#1d1d1f]">{product.title}</div>
-                <div className="text-sm text-[#6e6e73]">{product.language}</div>
-              </td>
-              <td className="p-4 text-[#1d1d1f]">
-                {typeof product.seller === 'object' ? product.seller.name : product.seller}
-              </td>
-              <td className="p-4 whitespace-nowrap">{formatMoney(Number(product.price))}</td>
-              <td className="p-4">{product.platform}</td>
-              <td className="p-4">
-                <span className={`inline-flex rounded-lg px-2.5 py-1 text-sm font-semibold ${product.isApproved ? 'bg-[#e6f4ea] text-[#1e8e3e]' : product.rejectionReason ? 'bg-[#ffecec] text-[#d70015]' : 'bg-[#fff4d6] text-[#a15c00]'}`}>
-                  {product.isApproved ? 'Đã duyệt' : product.rejectionReason ? 'Bị từ chối' : 'Chờ duyệt'}
-                </span>
-              </td>
-              <td className="p-4">
-                <span className={`inline-flex rounded-lg px-2.5 py-1 text-sm font-semibold ${product.isLocked ? 'bg-[#ffecec] text-[#d70015]' : 'bg-[#e6f4ea] text-[#1e8e3e]'}`}>
-                  {product.isLocked ? 'Đã khóa' : 'Đang bán'}
-                </span>
-              </td>
-              <td className="p-4">
-                <div className="flex gap-2">
-                  {!product.isApproved && (
-                    <button onClick={() => approve(product._id)} className="rounded-lg bg-[#0071e3] text-white px-3 py-2 text-sm font-semibold">
-                      Duyệt
+          {products.map((product) => {
+            const approving = actionId === `approve-${product._id}`;
+            const locking = actionId === `lock-${product._id}`;
+
+            return (
+              <tr key={product._id} className="border-b border-[#f2f2f2] last:border-b-0">
+                <td className="p-4">
+                  <div className="font-semibold text-[#1d1d1f]">{product.title}</div>
+                  <div className="text-sm text-[#6e6e73]">{product.language}</div>
+                </td>
+                <td className="p-4 text-[#1d1d1f]">
+                  {typeof product.seller === 'object' ? product.seller.name : product.seller}
+                </td>
+                <td className="p-4 whitespace-nowrap">{formatMoney(Number(product.price))}</td>
+                <td className="p-4">{product.platform}</td>
+                <td className="p-4">
+                  <span className={`inline-flex rounded-lg px-2.5 py-1 text-sm font-semibold ${product.isApproved ? 'bg-[#e6f4ea] text-[#1e8e3e]' : product.rejectionReason ? 'bg-[#ffecec] text-[#d70015]' : 'bg-[#fff4d6] text-[#a15c00]'}`}>
+                    {product.isApproved ? 'Đã duyệt' : product.rejectionReason ? 'Bị từ chối' : 'Chờ duyệt'}
+                  </span>
+                </td>
+                <td className="p-4">
+                  <span className={`inline-flex rounded-lg px-2.5 py-1 text-sm font-semibold ${product.isLocked ? 'bg-[#ffecec] text-[#d70015]' : 'bg-[#e6f4ea] text-[#1e8e3e]'}`}>
+                    {product.isLocked ? 'Đã khóa' : 'Đang bán'}
+                  </span>
+                </td>
+                <td className="p-4">
+                  <div className="flex gap-2">
+                    {!product.isApproved && (
+                      <button
+                        type="button"
+                        onClick={() => approve(product._id)}
+                        disabled={!!actionId}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#0071e3] text-white px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                      >
+                        {approving && <Loader2 size={14} className="animate-spin" />}
+                        Duyệt
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => toggleLock(product)}
+                      disabled={!!actionId}
+                      className="inline-flex items-center gap-1 rounded-lg bg-[#fff0ef] text-[#d70015] px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                    >
+                      {locking && <Loader2 size={14} className="animate-spin" />}
+                      {product.isLocked ? 'Mở khóa' : 'Khóa'}
                     </button>
-                  )}
-                  <button onClick={() => toggleLock(product)} className="rounded-lg bg-[#fff0ef] text-[#d70015] px-3 py-2 text-sm font-semibold">
-                    {product.isLocked ? 'Mở khóa' : 'Khóa'}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {products.length === 0 && <div className="p-8 text-center text-[#6e6e73]">Chưa có source nào.</div>}
@@ -183,6 +238,12 @@ const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
+  const [toast, setToast] = useState<Toast>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    window.setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'admin')) {
@@ -195,6 +256,8 @@ const AdminPage: React.FC = () => {
     try {
       const data = await adminService.getOverview();
       setOverview(data);
+    } catch (err: any) {
+      showToast(getErrorMessage(err, 'Không thể tải tổng quan.'), 'error');
     } finally {
       setOverviewLoading(false);
     }
@@ -233,6 +296,7 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex font-sans">
+      <ToastBox toast={toast} />
       <aside className="w-[260px] bg-white border-r border-[#e5e5ea] fixed left-0 top-0 h-screen p-5 flex flex-col">
         <Link to="/" className="text-2xl font-bold text-[#1d1d1f] mb-7">
           CodeStore Admin
@@ -242,6 +306,7 @@ const AdminPage: React.FC = () => {
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left font-semibold ${activeTab === tab.id ? 'bg-[#0071e3] text-white' : 'text-[#1d1d1f] hover:bg-[#f5f5f7]'}`}
             >
@@ -251,11 +316,11 @@ const AdminPage: React.FC = () => {
           ))}
         </nav>
 
-        <button onClick={() => navigate('/')} className="w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7]">
+        <button type="button" onClick={() => navigate('/')} className="w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7]">
           <LayoutDashboard size={19} />
           Về trang chủ
         </button>
-        <button onClick={logout} className="w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left font-semibold text-[#d70015] hover:bg-[#ffecec]">
+        <button type="button" onClick={logout} className="w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left font-semibold text-[#d70015] hover:bg-[#ffecec]">
           <LogOut size={19} />
           Đăng xuất
         </button>
@@ -267,7 +332,7 @@ const AdminPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-[#1d1d1f]">{pageTitle}</h1>
             <p className="text-[#6e6e73] mt-1">Theo dõi người dùng, seller, source code, voucher và doanh thu.</p>
           </div>
-          <button onClick={loadOverview} className="inline-flex items-center gap-2 rounded-lg bg-white border border-[#d2d2d7] px-4 py-2 font-semibold">
+          <button type="button" onClick={loadOverview} className="inline-flex items-center gap-2 rounded-lg bg-white border border-[#d2d2d7] px-4 py-2 font-semibold">
             <RefreshCw size={17} />
             Tải lại
           </button>
@@ -282,7 +347,7 @@ const AdminPage: React.FC = () => {
         )}
         {activeTab === 'users' && <UserList />}
         {activeTab === 'approvals' && <ProductApproval />}
-        {activeTab === 'products' && <AdminProductManager />}
+        {activeTab === 'products' && <AdminProductManager showToast={showToast} />}
         {activeTab === 'vouchers' && <AdminVoucherManager />}
         {activeTab === 'reviews' && <ReviewManager />}
       </main>
