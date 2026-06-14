@@ -34,7 +34,7 @@ app.use(generalLimiter);
 
 app.use(cors({
     origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
 }));
@@ -54,6 +54,22 @@ app.use('/api/vouchers', voucherRoutes);
 
 app.get('/', (req, res) => {
     res.send('CodeStore Backend API is running...');
+});
+
+app.get('/api/health/routes', (req, res) => {
+    res.json({
+        message: 'Dashboard routes are mounted',
+        admin: [
+            'GET /api/admin/reviews',
+            'PATCH /api/admin/users/:id/block',
+            'PATCH /api/admin/products/:id/lock',
+        ],
+        vouchers: [
+            'PATCH /api/vouchers/:id/approve',
+            'PATCH /api/vouchers/:id/reject',
+            'PATCH /api/vouchers/:id/toggle',
+        ],
+    });
 });
 
 const PORT = process.env.PORT || 5000;
