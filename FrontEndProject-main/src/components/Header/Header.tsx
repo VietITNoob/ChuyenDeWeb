@@ -96,8 +96,8 @@ const Header = () => {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-[9999] h-[52px] font-sans transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${scrolled || isDropdownOpen
-            ? 'bg-white/75 backdrop-blur-[20px] border-b border-black/10'
+        className={`fixed top-0 left-0 right-0 z-[9999] h-[52px] font-sans transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${scrolled || isDropdownOpen
+            ? 'bg-white/95 backdrop-blur-[18px] border-b border-black/10 shadow-[0_1px_12px_rgba(0,0,0,0.06)]'
             : 'bg-transparent border-b border-transparent'
           }`}
         onMouseLeave={onNavLeave}
@@ -330,6 +330,12 @@ const Header = () => {
       </nav>
 
       {/* BACKDROP */}
+      <div
+        className={`fixed top-[52px] left-0 right-0 bottom-0 bg-black/20 backdrop-blur-[2px] z-[9997] transition-opacity duration-300 ${isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+          }`}
+        onClick={onNavLeave}
+      ></div>
+
       <div
         className={`fixed top-[52px] left-0 right-0 bottom-0 bg-black/40 backdrop-blur-[4px] z-[9998] transition-opacity duration-300 ${isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
           }`}
