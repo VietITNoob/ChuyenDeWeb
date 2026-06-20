@@ -92,6 +92,7 @@ export interface User {
     lastName?: string;
     phone?: string;
     country?: string;
+    balance?: number;
     createdAt?: string;
     updatedAt?: string;
 }

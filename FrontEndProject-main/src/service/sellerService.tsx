@@ -30,4 +30,12 @@ export const sellerService = {
     getMonthlyRevenue: (year: number): Promise<{ year: number; months: MonthlyRevenueItem[] }> => {
         return axiosClient.get('/seller/stats/monthly', { params: { year } });
     },
+
+    getWithdrawRequests: (): Promise<any[]> => {
+        return axiosClient.get('/seller/withdrawals');
+    },
+
+    createWithdrawRequest: (data: { amount: number; bankName: string; accountNumber: string; accountName: string }): Promise<any> => {
+        return axiosClient.post('/seller/withdrawals', data);
+    },
 };
