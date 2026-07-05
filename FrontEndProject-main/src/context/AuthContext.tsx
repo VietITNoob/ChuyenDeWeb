@@ -10,6 +10,7 @@ export interface AuthUser {
     name: string;
     email: string;
     role: 'buyer' | 'seller' | 'admin';
+    avatar?: string;
 }
 
 // =============================================
@@ -18,6 +19,7 @@ export interface AuthUser {
 interface AuthContextType {
     user: AuthUser | null;
     login: (email: string, password: string) => Promise<void>;
+    loginWithGoogle: (credential: string) => Promise<void>;
     register: (name: string, email: string, password: string, role?: 'buyer' | 'seller') => Promise<void>;
     loginWithData: (userData: AuthUser, token: string) => void;
     logout: () => void;
@@ -59,12 +61,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     // Hàm nội bộ: lưu user và token sau khi auth thành công
-    const saveAuthData = (data: AuthResponse) => {
+    const saveAuthData = (data: AuthResponse & { avatar?: string }) => {
         const authUser: AuthUser = {
             _id: data._id,
             name: data.name,
             email: data.email,
             role: data.role,
+            avatar: data.avatar,
         };
         setUser(authUser);
         setError(null);
@@ -104,6 +107,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    // ===== Đăng nhập bằng Google OAuth =====
+    const loginWithGoogle = async (credential: string) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await authService.googleLogin(credential);
+            saveAuthData(data as any);
+        } catch (err: any) {
+            const message = err.response?.data?.message || 'Đăng nhập Google thất bại. Vui lòng thử lại.';
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // ===== Login thủ công (dùng khi đã có data từ nơi khác) =====
     const loginWithData = (userData: AuthUser, token: string) => {
         setUser(userData);
@@ -125,6 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         <AuthContext.Provider value={{
             user,
             login,
+            loginWithGoogle,
             register,
             loginWithData,
             logout,

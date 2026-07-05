@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 import './index.css'
 import { AuthProvider } from './context/AuthContext.tsx' 
@@ -7,15 +8,18 @@ import { CartProvider } from './context/CartContext.tsx'
 import { WishlistProvider } from './context/WishlistContext.tsx'
 import App from './app/App.tsx'
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {/* 2. Bọc AuthProvider ra ngoài cùng (hoặc bên trong CartProvider đều được) */}
-    <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
-          <App />
-        </WishlistProvider>
-      </CartProvider>
-    </AuthProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <App />
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
+    </GoogleOAuthProvider>
   </React.StrictMode>,
 )

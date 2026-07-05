@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { authService } from '../../../service/authService';
 
-// Định nghĩa kiểu dữ liệu trả về của Hook để gợi ý code tốt hơn
+// Định nghĩa kiểu dữ liệu trả về của Hook
 interface UseForgotPasswordReturn {
   email: string;
   setEmail: (value: string) => void;
@@ -19,46 +20,31 @@ export const useForgotPassword = (): UseForgotPasswordReturn => {
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Logic Validate Email đơn giản
+  // Validate Email
   const isValidEmail = email.includes('@') && email.length > 5;
 
   // Hàm xử lý khi bấm nút Gửi
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!isValidEmail) return;
 
     setLoading(true);
-    setError(null); // Reset lỗi cũ
+    setError(null);
 
     try {
-      // Gọi API đến Server Custom (Port 3001 như bạn đã cấu hình)
-      const response = await fetch('http://localhost:3001/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Thành công -> Chuyển sang màn hình thông báo
-        setIsSubmitted(true);
-      } else {
-        // Thất bại -> Hiển thị lỗi từ server trả về
-        setError(data.error || 'Có lỗi xảy ra, vui lòng thử lại.');
-      }
-    } catch (err) {
-      console.error('Error sending reset email:', err);
-      setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.');
+      // Gọi API backend Express.js → POST /api/auth/forgot-password
+      await authService.forgotPassword(email);
+      // Backend luôn trả 200 để tránh lộ email (dù email không tồn tại)
+      setIsSubmitted(true);
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.';
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Hàm để quay lại form nhập nếu muốn gửi lại
+  // Hàm quay lại form nhập email
   const handleRetry = () => {
     setIsSubmitted(false);
     setEmail('');
