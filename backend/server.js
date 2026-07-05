@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -14,6 +16,18 @@ connectDB();
 
 const app = express();
 
+// ===== BẢO MẬT: HTTP Security Headers =====
+app.use(helmet());
+
+// ===== BẢO MẬT: Giới hạn request chung (chống DDoS) =====
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 phút
+    max: 200,                  // Tối đa 200 request mỗi IP trong 15 phút
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Quá nhiều request từ IP này, vui lòng thử lại sau 15 phút.' }
+});
+app.use(generalLimiter);
 
 app.use(cors({
     origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
@@ -21,7 +35,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Giới hạn body size
 
 
 // Sử dụng Routes
