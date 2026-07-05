@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { getProducts, getProductById, createProduct, getUnapprovedProducts, approveProduct } = require('../controllers/productController');
+const {
+    getProducts,
+    getProductById,
+    createProduct,
+    getUnapprovedProducts,
+    approveProduct,
+    rejectProduct,
+    createProductReview,
+} = require('../controllers/productController');
 const { protect, seller, admin } = require('../middlewares/authMiddleware');
 const { handleValidationErrors } = require('../middlewares/validate');
 
@@ -42,8 +50,32 @@ const createProductValidation = [
         .isURL().withMessage('Source code file phải là URL hợp lệ.'),
 ];
 
+// ===== VALIDATION RULES cho review =====
+const reviewValidation = [
+    body('rating')
+        .notEmpty().withMessage('Vui lòng chọn số sao.')
+        .isInt({ min: 1, max: 5 }).withMessage('Rating phải từ 1 đến 5.'),
+
+    body('comment')
+        .trim()
+        .notEmpty().withMessage('Nội dung đánh giá không được để trống.')
+        .isLength({ min: 10 }).withMessage('Đánh giá phải có ít nhất 10 ký tự.'),
+];
+
+// ===== VALIDATION RULES cho reject =====
+const rejectValidation = [
+    body('reason')
+        .trim()
+        .notEmpty().withMessage('Vui lòng nhập lý do từ chối.')
+        .isLength({ min: 10 }).withMessage('Lý do từ chối phải có ít nhất 10 ký tự.'),
+];
+
 // ===== ROUTES =====
+
+// Lấy tất cả sản phẩm (hỗ trợ ?keyword=&page=&limit=)
 router.get('/', getProducts);
+
+// Tạo sản phẩm mới (Seller only)
 router.post('/', protect, seller, createProductValidation, handleValidationErrors, createProduct);
 
 // PHẢI đặt trước /:id để /unapproved không bị match vào /:id
@@ -55,4 +87,10 @@ router.get('/:id', getProductById);
 // Duyệt sản phẩm (Admin only)
 router.put('/:id/approve', protect, admin, approveProduct);
 
-module.exports = router;
+// Từ chối sản phẩm kèm lý do (Admin only)
+router.put('/:id/reject', protect, admin, rejectValidation, handleValidationErrors, rejectProduct);
+
+// Thêm review cho sản phẩm (cần đăng nhập)
+router.post('/:id/reviews', protect, reviewValidation, handleValidationErrors, createProductReview);
+
+module.exports = router;

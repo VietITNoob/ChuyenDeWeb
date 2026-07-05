@@ -33,7 +33,8 @@ function useProductSearch(filters: FilterState) {
                     params.q = filters.tech;
                 }
                 const data = await productService.getAll(params);
-                setProducts(data);
+                // Backend trả về { products, page, pages, totalProducts }
+                setProducts(data.products || []);
 
             } catch (error) {
                 console.error("Failed to fetch products", error);

@@ -40,4 +40,26 @@ export const authService = {
     getProfile: (): Promise<{ _id: string; name: string; email: string; role: string }> => {
         return axiosClient.get('/users/profile');
     },
+
+    /**
+     * Gửi email đặt lại mật khẩu → POST /api/auth/forgot-password
+     */
+    forgotPassword: (email: string): Promise<{ message: string }> => {
+        return axiosClient.post('/auth/forgot-password', { email });
+    },
+
+    /**
+     * Đặt lại mật khẩu bằng token → PUT /api/auth/reset-password/:token
+     */
+    resetPassword: (token: string, password: string): Promise<{ message: string }> => {
+        return axiosClient.put(`/auth/reset-password/${token}`, { password });
+    },
+
+    /**
+     * Đăng nhập bằng Google OAuth → POST /api/auth/google
+     * @param credential - Google ID Token (JWT) từ @react-oauth/google
+     */
+    googleLogin: (credential: string): Promise<{ _id: string; name: string; email: string; role: string; avatar?: string; token: string }> => {
+        return axiosClient.post('/auth/google', { credential });
+    },
 };

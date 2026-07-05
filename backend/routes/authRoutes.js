@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { body } = require('express-validator');
-const { registerUser, loginUser } = require('../controllers/authController');
+const { registerUser, loginUser, forgotPassword, resetPassword, googleLogin } = require('../controllers/authController');
 const { handleValidationErrors } = require('../middlewares/validate');
 
 // ===== BẢO MẬT: Rate Limit riêng cho Login (chống Brute-force) =====
@@ -50,5 +50,24 @@ const loginValidation = [
 // ===== ROUTES =====
 router.post('/register', registerValidation, handleValidationErrors, registerUser);
 router.post('/login', loginLimiter, loginValidation, handleValidationErrors, loginUser);
+
+// Quên mật khẩu → nhận email với link reset
+router.post('/forgot-password', [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email không được để trống.')
+        .isEmail().withMessage('Email không đúng định dạng.'),
+], handleValidationErrors, forgotPassword);
+
+// Đặt lại mật khẩu bằng token trong URL
+router.put('/reset-password/:token', [
+    body('password')
+        .notEmpty().withMessage('Mật khẩu không được để trống.')
+        .isLength({ min: 6 }).withMessage('Mật khẩu phải có ít nhất 6 ký tự.')
+        .matches(/\d/).withMessage('Mật khẩu phải chứa ít nhất 1 chữ số.'),
+], handleValidationErrors, resetPassword);
+
+// Đăng nhập / Đăng ký bằng Google OAuth
+router.post('/google', googleLogin);
 
 module.exports = router;

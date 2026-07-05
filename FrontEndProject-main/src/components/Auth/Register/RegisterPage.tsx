@@ -3,6 +3,7 @@ import { useRegister } from './useRegister';
 import Header from '../../../components/Header/Header';
 import Footer from '../../../components/Footer/Footer';
 import AuthLayout from '../AuthLayout';
+import GoogleLoginButton from '../GoogleLoginButton';
 
 const RegisterPage = () => {
     const { 
@@ -198,6 +199,20 @@ const RegisterPage = () => {
                         </div>
                     </div>
                 </form>
+
+                {/* Google OAuth */}
+                <div className="max-w-[480px] mx-auto w-full">
+                    <div className="flex items-center gap-4 my-6">
+                        <div className="flex-1 h-px bg-[#d2d2d7]"></div>
+                        <span className="text-[13px] text-apple-gray font-medium">hoặc đăng ký nhanh</span>
+                        <div className="flex-1 h-px bg-[#d2d2d7]"></div>
+                    </div>
+                    <GoogleLoginButton
+                        redirectTo="/"
+                        onError={(msg) => alert(msg)}
+                    />
+                </div>
+
             </div>
 
             <Footer />

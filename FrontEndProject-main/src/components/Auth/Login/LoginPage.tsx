@@ -3,6 +3,7 @@ import { useLogin } from './useLogin';
 import Header from '../../Header/Header';
 import Footer from '../../Footer/Footer';
 import AuthLayout from '../AuthLayout';
+import GoogleLoginButton from '../GoogleLoginButton';
 
 const LoginPage = () => {
   const {
@@ -119,6 +120,23 @@ const LoginPage = () => {
             </div>
 
           </div>
+
+          {/* GOOGLE OAUTH — chỉ hiện ở bước nhập email */}
+          {step === 'email' && (
+            <div className="max-w-[440px] mx-auto mt-2 opacity-0 animate-[fadeInUp_0.8s_cubic-bezier(0.25,0.8,0.25,1)_0.5s_forwards]">
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-[#d2d2d7]"></div>
+                <span className="text-[13px] text-apple-gray font-medium">hoặc</span>
+                <div className="flex-1 h-px bg-[#d2d2d7]"></div>
+              </div>
+
+              <GoogleLoginButton
+                redirectTo="/"
+                onError={(msg) => alert(msg)}
+              />
+            </div>
+          )}
 
         </form>
       </div>
