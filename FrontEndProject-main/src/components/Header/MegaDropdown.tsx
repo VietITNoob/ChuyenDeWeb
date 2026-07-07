@@ -7,7 +7,7 @@ interface Props {
 
 const MegaDropdown: React.FC<Props> = ({ visible }) => {
   return (
-    <div className={`absolute top-[52px] left-0 right-0 bg-white border-b border-[#e5e5ea] shadow-[0_24px_70px_rgba(0,0,0,0.14)] overflow-hidden z-30 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${visible ? 'h-[330px] opacity-100 visible delay-0' : 'h-0 opacity-0 invisible delay-200'}`}>
+    <div className={`absolute top-[52px] left-0 right-0 bg-white/95 backdrop-blur-[20px] border-b-4 border-black/10 shadow-[0_20px_40px_rgba(0,0,0,0.05)] rounded-lg overflow-hidden z-10 transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${visible ? 'h-[340px] opacity-100 visible delay-0' : 'h-0 opacity-0 invisible delay-500'}`}>
       
       {/* Cấu trúc pseudo-element thay bằng div cho gradient border bottom effect */}
       <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#0071e3] to-transparent origin-center z-10 transition-all duration-[500ms] ease-[cubic-bezier(0.19,1,0.22,1)] ${visible ? 'opacity-100 scale-x-100 delay-100' : 'opacity-0 scale-x-50'}`}></div>

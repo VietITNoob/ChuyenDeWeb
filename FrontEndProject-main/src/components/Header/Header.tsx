@@ -256,7 +256,7 @@ const Header = () => {
         <MegaDropdown visible={isDropdownOpen} />
 
         {/* 5. SEARCH DROPDOWN */}
-        <div className={`absolute top-[52px] left-0 right-0 bg-white/98 backdrop-blur-[20px] border-b-4 border-black/10 shadow-[0_20px_40px_rgba(0,0,0,0.05)] rounded-lg overflow-hidden z-10 flex justify-center items-start transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isSearchOpen ? 'visible h-[340px] opacity-100 delay-0' : 'invisible h-0 opacity-0 delay-500'
+        <div className={`absolute top-[52px] left-0 right-0 bg-white/95 backdrop-blur-[20px] border-b-4 border-black/10 shadow-[0_20px_40px_rgba(0,0,0,0.05)] rounded-lg overflow-hidden z-10 flex justify-center items-start transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isSearchOpen ? 'visible h-[340px] opacity-100 delay-0' : 'invisible h-0 opacity-0 delay-500'
           }`}>
           <div className={`w-full max-w-[680px] py-5 flex flex-col gap-5 transition-all duration-400 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isSearchOpen ? 'opacity-100 translate-y-0 delay-100' : 'opacity-0 -translate-y-2.5'
             }`}>
