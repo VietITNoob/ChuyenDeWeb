@@ -27,4 +27,11 @@ export const userService = {
     getById: (id: string): Promise<User> => {
         return axiosClient.get(`/users/${id}`);
     },
+
+    /**
+     * Cập nhật thông tin profile (tên và email) → PUT /api/users/profile
+     */
+    updateProfile: (data: { name: string; email: string }): Promise<User> => {
+        return axiosClient.put('/users/profile', data);
+    },
 };

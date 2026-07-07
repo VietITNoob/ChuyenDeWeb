@@ -209,7 +209,7 @@ const Header = () => {
 
                     <ul className="list-none p-0 m-0">
                       <li>
-                        <Link to="/account/home" className="flex items-center gap-2.5 px-5 py-2.5 text-[#424245] text-[14px] no-underline w-full hover:bg-apple-lightbg hover:text-apple-blue transition-colors">
+                        <Link to="/profile/edit" className="flex items-center gap-2.5 px-5 py-2.5 text-[#424245] text-[14px] no-underline w-full hover:bg-apple-lightbg hover:text-apple-blue transition-colors">
                           <User size={16} /> Thông tin tài khoản
                         </Link>
                       </li>
