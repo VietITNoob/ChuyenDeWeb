@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema({
         default: 'buyer'
     },
     isBlocked: { type: Boolean, required: true, default: false },
+    balance: { type: Number, required: true, default: 0 },
     googleId: { type: String, sparse: true },   // Google OAuth ID
     avatar: { type: String },                    // Ảnh đại diện từ Google
     resetPasswordToken: { type: String },

@@ -12,6 +12,7 @@ import {
     Plus,
     Tag,
     Upload,
+    Landmark,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { productService, type CreateProductData } from '../../service/productService';
@@ -19,8 +20,9 @@ import { sellerService, type MonthlyRevenueItem, type SellerOverview } from '../
 import { uploadService } from '../../service/uploadService';
 import { voucherService, type VoucherPayload } from '../../service/voucherService';
 import type { Product, Voucher } from '../../types';
+import WithdrawPanel from './components/WithdrawPanel';
 
-type SellerTab = 'overview' | 'create' | 'products' | 'vouchers' | 'stats';
+type SellerTab = 'overview' | 'create' | 'products' | 'vouchers' | 'stats' | 'withdraw';
 
 const money = (value: number) => new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -456,6 +458,7 @@ const SellerPage: React.FC = () => {
         { id: 'products', label: 'San pham', icon: <Package size={19} /> },
         { id: 'vouchers', label: 'Voucher', icon: <Gift size={19} /> },
         { id: 'stats', label: 'Doanh so', icon: <BarChart3 size={19} /> },
+        { id: 'withdraw', label: 'Rut tien', icon: <Landmark size={19} /> },
     ];
 
     return (
@@ -498,6 +501,7 @@ const SellerPage: React.FC = () => {
                         {activeTab === 'products' && <ProductListPanel products={products} />}
                         {activeTab === 'vouchers' && <VoucherPanel products={products} vouchers={vouchers} onChanged={loadDashboard} />}
                         {activeTab === 'stats' && <MonthlyStatsPanel months={months} />}
+                        {activeTab === 'withdraw' && <WithdrawPanel />}
                     </>
                 )}
             </main>

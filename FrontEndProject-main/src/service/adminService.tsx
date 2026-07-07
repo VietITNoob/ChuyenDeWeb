@@ -64,4 +64,20 @@ export const adminService = {
     deleteReview: (productId: string, reviewId: string): Promise<{ message: string }> => {
         return axiosClient.delete(`/admin/reviews/${productId}/${reviewId}`);
     },
+
+    getOrders: (): Promise<any[]> => {
+        return axiosClient.get('/admin/orders');
+    },
+
+    getWithdrawRequests: (): Promise<any[]> => {
+        return axiosClient.get('/admin/withdrawals');
+    },
+
+    approveWithdrawRequest: (id: string): Promise<{ message: string; request: any }> => {
+        return axiosClient.patch(`/admin/withdrawals/${id}/approve`);
+    },
+
+    rejectWithdrawRequest: (id: string, reason: string): Promise<{ message: string; request: any }> => {
+        return axiosClient.patch(`/admin/withdrawals/${id}/reject`, { reason });
+    },
 };

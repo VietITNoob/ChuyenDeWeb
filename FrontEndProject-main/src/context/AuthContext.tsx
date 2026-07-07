@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authService } from '../service/authService';
+import { userService } from '../service/userService';
 import type { AuthResponse } from '../types';
 
 // =============================================
@@ -12,6 +13,7 @@ export interface AuthUser {
     role: 'buyer' | 'seller' | 'admin';
     avatar?: string;
     phone?: string;
+    balance?: number;
 }
 
 // =============================================
@@ -24,6 +26,7 @@ interface AuthContextType {
     register: (name: string, email: string, password: string, role?: 'buyer' | 'seller') => Promise<void>;
     loginWithData: (userData: AuthUser, token: string) => void;
     logout: () => void;
+    refreshUser: () => Promise<void>;
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
@@ -132,6 +135,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('accessToken', token);
     };
 
+    // ===== Refresh User Info =====
+    const refreshUser = async () => {
+        const storedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('accessToken');
+        if (storedUser && token) {
+            try {
+                const profile = await userService.getProfile();
+                const updatedUser = {
+                    ...JSON.parse(storedUser),
+                    name: profile.name,
+                    email: profile.email,
+                    balance: profile.balance || 0,
+                };
+                setUser(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            } catch (e) {
+                console.error("Failed to refresh user profile:", e);
+            }
+        }
+    };
+
     // ===== Đăng xuất =====
     const logout = () => {
         setUser(null);
@@ -149,6 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             register,
             loginWithData,
             logout,
+            refreshUser,
             isAuthenticated: !!user,
             isLoading,
             error

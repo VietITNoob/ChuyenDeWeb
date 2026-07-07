@@ -6,6 +6,7 @@ import './index.css'
 import { AuthProvider } from './context/AuthContext.tsx' 
 import { CartProvider } from './context/CartContext.tsx' 
 import { WishlistProvider } from './context/WishlistContext.tsx'
+import { ToastProvider } from './context/ToastContext.tsx'
 import App from './app/App.tsx'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -13,13 +14,15 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <App />
-          </WishlistProvider>
-        </CartProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <App />
+            </WishlistProvider>
+          </CartProvider>
+        </AuthProvider>
+      </ToastProvider>
     </GoogleOAuthProvider>
   </React.StrictMode>,
 )

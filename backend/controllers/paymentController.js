@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const querystring = require('qs');
 const Order = require('../models/Order');
 const Voucher = require('../models/Voucher');
+const User = require('../models/User');
 const { sortObject } = require('../utils/vnpayHelper');
 
 // @desc    Tạo URL thanh toán VNPAY
@@ -93,7 +94,7 @@ const vnpayReturn = async (req, res) => {
                 const orderId = vnp_Params['vnp_TxnRef'];
 
                 // Cập nhật trạng thái đơn hàng trong Database
-                const order = await Order.findById(orderId);
+                const order = await Order.findById(orderId).populate('orderItems.product');
                 if (order && !order.isPaid) {
                     order.isPaid = true;
                     order.paidAt = Date.now();
@@ -103,6 +104,16 @@ const vnpayReturn = async (req, res) => {
                         update_time: moment().format('YYYY-MM-DD HH:mm:ss')
                     };
                     await order.save();
+
+                    // Cộng tiền vào tài khoản của từng người bán (seller)
+                    for (const item of order.orderItems) {
+                        if (item.product && item.product.seller) {
+                            const sellerId = item.product.seller;
+                            const amount = item.price * (item.quantity || 1);
+                            await User.findByIdAndUpdate(sellerId, { $inc: { balance: amount } });
+                        }
+                    }
+
                     if (order.voucher) {
                         await Voucher.findByIdAndUpdate(order.voucher, { $inc: { usedCount: 1 } });
                     }

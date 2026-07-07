@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, type ReactNode, useContext } from 'react';
 import { cartService, type CartItem } from '../service/cartService';
 import type { Product } from '../types';
+import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 
 interface CartContextType {
@@ -17,6 +19,8 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lastAddedItem, setLastAddedItem] = useState<CartItem | null>(null);
 
@@ -33,6 +37,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const addToCart = async (product: Product) => {
+    if (user && (user.role === 'admin' || user.role === 'seller')) {
+      showToast('Tài khoản Admin hoặc Seller không được phép mua hàng!', 'error');
+      return;
+    }
+
     try {
       // Sử dụng _id (MongoDB) hoặc id
       const productId = product._id || product.id;
@@ -43,10 +52,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const productId = product._id || product.id;
         setCartItems(prevItems => prevItems.map(item => (item._id || item.id) === productId ? returnedItem : item));
         setLastAddedItem(returnedItem);
+        showToast('Đã tăng số lượng sản phẩm trong giỏ hàng!');
       } else {
         const newItem = await cartService.addToCart(product);
         setCartItems(prevItems => [...prevItems, newItem]);
         setLastAddedItem(newItem);
+        showToast('Đã thêm sản phẩm vào giỏ hàng!');
       }
     } catch (error) {
       console.error("Failed to add item to cart:", error);

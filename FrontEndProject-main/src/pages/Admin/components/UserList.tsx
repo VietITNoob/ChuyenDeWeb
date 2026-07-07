@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Users } from 'lucide-react';
 import { adminService } from '../../../service/adminService';
 import type { User } from '../../../types';
-
-type Toast = { type: 'success' | 'error'; message: string } | null;
+import { useToast } from '../../../context/ToastContext';
+import { ConfirmModal } from '../../../components/UI/ConfirmModal';
 
 const emptyForm = {
   _id: '',
@@ -18,19 +18,18 @@ const getErrorMessage = (error: any, fallback: string) => {
 };
 
 const UserList: React.FC = () => {
+  const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<Toast>(null);
   const [form, setForm] = useState(emptyForm);
   const [isEditing, setIsEditing] = useState(false);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    window.setTimeout(() => setToast(null), 3000);
-  };
+  // States for ConfirmModal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -69,7 +68,7 @@ const UserList: React.FC = () => {
         if (form.password) payload.password = form.password;
         const updatedUser = await adminService.updateUser(form._id, payload);
         setUsers((current) => current.map((user) => user._id === updatedUser._id ? { ...user, ...updatedUser } : user));
-        showToast('Đã cập nhật người dùng.');
+        showToast('Đã cập nhật thông tin người dùng thành công!');
       } else {
         const createdUser = await adminService.createUser({
           name: form.name,
@@ -78,7 +77,7 @@ const UserList: React.FC = () => {
           role: form.role,
         });
         setUsers((current) => [createdUser, ...current]);
-        showToast('Đã thêm người dùng.');
+        showToast('Đã thêm người dùng mới thành công!');
       }
 
       resetForm();
@@ -108,7 +107,7 @@ const UserList: React.FC = () => {
     try {
       await adminService.toggleUserBlock(user._id, nextBlocked);
       setUsers((current) => current.map((item) => item._id === user._id ? { ...item, isBlocked: nextBlocked } : item));
-      showToast(nextBlocked ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.');
+      showToast(nextBlocked ? 'Đã khóa tài khoản thành công!' : 'Đã mở khóa tài khoản thành công!');
     } catch (err: any) {
       showToast(getErrorMessage(err, 'Không thể cập nhật tài khoản.'), 'error');
     } finally {
@@ -116,17 +115,24 @@ const UserList: React.FC = () => {
     }
   };
 
-  const deleteUser = async (id: string) => {
-    if (!window.confirm('Xóa tài khoản này?')) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteTargetId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    const id = deleteTargetId;
     setActionId(`delete-${id}`);
     try {
       await adminService.deleteUser(id);
       setUsers((current) => current.filter((user) => user._id !== id));
-      showToast('Đã xóa tài khoản.');
+      showToast('Đã xóa tài khoản thành công!');
     } catch (err: any) {
       showToast(getErrorMessage(err, 'Không thể xóa tài khoản.'), 'error');
     } finally {
       setActionId(null);
+      setDeleteTargetId(null);
     }
   };
 
@@ -136,24 +142,19 @@ const UserList: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {toast && (
-        <div className={`fixed top-5 right-5 z-[500] rounded-lg px-5 py-3 text-sm font-semibold shadow-lg border ${toast.type === 'success' ? 'bg-white text-[#1e8e3e] border-[#cce8d5]' : 'bg-white text-[#d70015] border-[#ffd0d0]'}`}>
-          {toast.message}
-        </div>
-      )}
-
+      {/* Form adding/editing */}
       <form onSubmit={handleSubmit} className="bg-white border border-[#e5e5ea] rounded-lg p-5 grid grid-cols-1 lg:grid-cols-[1fr_1fr_160px_1fr_auto] gap-3 items-end">
         <label className="block">
           <span className="text-sm font-semibold text-[#1d1d1f]">Họ tên</span>
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5" required />
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5 outline-none focus:border-apple-blue transition-all" required />
         </label>
         <label className="block">
           <span className="text-sm font-semibold text-[#1d1d1f]">Email</span>
-          <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5" required />
+          <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5 outline-none focus:border-apple-blue transition-all" required />
         </label>
         <label className="block">
           <span className="text-sm font-semibold text-[#1d1d1f]">Vai trò</span>
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as any })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5 bg-white">
+          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as any })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5 bg-white outline-none focus:border-apple-blue transition-all">
             <option value="buyer">Buyer</option>
             <option value="seller">Seller</option>
             <option value="admin">Admin</option>
@@ -161,14 +162,14 @@ const UserList: React.FC = () => {
         </label>
         <label className="block">
           <span className="text-sm font-semibold text-[#1d1d1f]">Mật khẩu</span>
-          <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5" required={!isEditing} placeholder={isEditing ? 'Bỏ trống nếu không đổi' : ''} />
+          <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-3 py-2.5 outline-none focus:border-apple-blue transition-all" required={!isEditing} placeholder={isEditing ? 'Bỏ trống nếu không đổi' : ''} />
         </label>
         <div className="flex gap-2">
-          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#0071e3] text-white px-4 py-2.5 font-semibold disabled:opacity-60">
+          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#0071e3] text-white px-4 py-2.5 font-semibold disabled:opacity-60 cursor-pointer transition-all hover:bg-[#0077ed] active:scale-95">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
             {isEditing ? 'Lưu' : 'Thêm'}
           </button>
-          {isEditing && <button type="button" onClick={resetForm} className="rounded-lg bg-[#f5f5f7] px-4 py-2.5 font-semibold">Hủy</button>}
+          {isEditing && <button type="button" onClick={resetForm} className="rounded-lg bg-[#f5f5f7] px-4 py-2.5 font-semibold cursor-pointer hover:bg-[#e5e5ea] active:scale-95 transition-all">Hủy</button>}
         </div>
       </form>
 
@@ -198,7 +199,7 @@ const UserList: React.FC = () => {
                 const deleting = actionId === `delete-${user._id}`;
 
                 return (
-                  <tr key={user._id} className="last:border-b-0 border-b border-[#e5e5ea]">
+                  <tr key={user._id} className="last:border-b-0 border-b border-[#e5e5ea] hover:bg-[#f9f9fb] transition-colors">
                     <td className="p-4 text-[15px] text-apple-dark">{user._id?.slice(-8).toUpperCase()}</td>
                     <td className="p-4 text-[15px] text-apple-dark font-medium">{user.name}</td>
                     <td className="p-4 text-[15px] text-apple-dark">{user.email}</td>
@@ -210,12 +211,12 @@ const UserList: React.FC = () => {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => editUser(user)} disabled={!!actionId} className="rounded-lg bg-[#f5f5f7] px-3 py-2 text-sm font-semibold disabled:opacity-60">Sửa</button>
-                        <button type="button" onClick={() => toggleBlock(user)} disabled={!!actionId} className="inline-flex items-center gap-1 rounded-lg bg-[#fff4d6] px-3 py-2 text-sm font-semibold disabled:opacity-60">
+                        <button type="button" onClick={() => editUser(user)} disabled={!!actionId} className="rounded-lg bg-[#f5f5f7] px-3 py-2 text-sm font-semibold disabled:opacity-60 hover:bg-[#e5e5ea] transition-all cursor-pointer">Sửa</button>
+                        <button type="button" onClick={() => toggleBlock(user)} disabled={!!actionId} className="inline-flex items-center gap-1 rounded-lg bg-[#fff4d6] px-3 py-2 text-sm font-semibold disabled:opacity-60 hover:bg-[#ffe082] transition-all cursor-pointer">
                           {blocking && <Loader2 size={14} className="animate-spin" />}
                           {user.isBlocked ? 'Mở khóa' : 'Khóa'}
                         </button>
-                        <button type="button" onClick={() => deleteUser(user._id)} disabled={!!actionId} className="inline-flex items-center gap-1 rounded-lg bg-[#ffecec] text-[#d70015] px-3 py-2 text-sm font-semibold disabled:opacity-60">
+                        <button type="button" onClick={() => handleDeleteClick(user._id)} disabled={!!actionId} className="inline-flex items-center gap-1 rounded-lg bg-[#ffecec] text-[#d70015] px-3 py-2 text-sm font-semibold disabled:opacity-60 hover:bg-[#ffcdd2] transition-all cursor-pointer">
                           {deleting && <Loader2 size={14} className="animate-spin" />}
                           Xóa
                         </button>
@@ -228,6 +229,20 @@ const UserList: React.FC = () => {
           </table>
         )}
       </div>
+
+      {/* Reusable ConfirmModal for deletion */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteTargetId(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Xóa tài khoản"
+        message="Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
+        confirmText="Xóa tài khoản"
+        isDanger={true}
+      />
     </div>
   );
 };

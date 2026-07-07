@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   Star,
   Users,
+  Landmark,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { adminService, type AdminOverview } from '../../service/adminService';
@@ -22,8 +23,12 @@ import UserList from './components/UserList';
 import ProductApproval from './components/ProductApproval';
 import AdminVoucherManager from './components/AdminVoucherManager';
 import ReviewManager from './components/ReviewManager';
+import AdminOrderManager from './components/AdminOrderManager';
+import AdminWithdrawManager from './components/AdminWithdrawManager';
+import { ConfirmModal } from '../../components/UI/ConfirmModal';
+import { useToast } from '../../context/ToastContext';
 
-type AdminTab = 'overview' | 'users' | 'approvals' | 'products' | 'vouchers' | 'reviews';
+type AdminTab = 'overview' | 'users' | 'approvals' | 'products' | 'vouchers' | 'reviews' | 'orders' | 'withdrawals';
 type Toast = { type: 'success' | 'error'; message: string } | null;
 
 const formatMoney = (value: number) => new Intl.NumberFormat('vi-VN', {
@@ -96,11 +101,19 @@ const AdminOverviewPanel = ({ overview }: { overview: AdminOverview | null }) =>
   </div>
 );
 
-const AdminProductManager = ({ showToast }: { showToast: (message: string, type?: 'success' | 'error') => void }) => {
+const AdminProductManager = () => {
+  const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState('');
+
+  // Modal States
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [approveTargetId, setApproveTargetId] = useState<string | null>(null);
+
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [lockTargetProduct, setLockTargetProduct] = useState<Product | null>(null);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -123,35 +136,51 @@ const AdminProductManager = ({ showToast }: { showToast: (message: string, type?
     setProducts((current) => current.map((product) => product._id === id ? { ...product, ...patch } : product));
   };
 
-  const approve = async (id: string) => {
+  const handleApproveClick = (id: string) => {
+    setApproveTargetId(id);
+    setIsApproveModalOpen(true);
+  };
+
+  const confirmApprove = async () => {
+    if (!approveTargetId) return;
+    const id = approveTargetId;
     setActionId(`approve-${id}`);
     try {
       await productService.approveProduct(id);
       updateProductState(id, { isApproved: true, rejectionReason: '' });
-      showToast('Đã duyệt source.');
+      showToast('Đã duyệt source code thành công!');
     } catch (err: any) {
       showToast(getErrorMessage(err, 'Không thể duyệt source.'), 'error');
     } finally {
       setActionId(null);
+      setApproveTargetId(null);
     }
   };
 
-  const toggleLock = async (product: Product) => {
+  const handleLockClick = (product: Product) => {
+    setLockTargetProduct(product);
+    setIsLockModalOpen(true);
+  };
+
+  const confirmLock = async () => {
+    if (!lockTargetProduct) return;
+    const product = lockTargetProduct;
     const nextLocked = !product.isLocked;
     setActionId(`lock-${product._id}`);
     try {
       await adminService.toggleProductLock(product._id, nextLocked);
       updateProductState(product._id, { isLocked: nextLocked });
-      showToast(nextLocked ? 'Đã khóa source.' : 'Đã mở khóa source.');
+      showToast(nextLocked ? 'Đã khóa source code thành công!' : 'Đã mở khóa source code thành công!');
     } catch (err: any) {
       showToast(getErrorMessage(err, 'Không thể cập nhật trạng thái source.'), 'error');
     } finally {
       setActionId(null);
+      setLockTargetProduct(null);
     }
   };
 
   if (loading) {
-    return <div className="bg-white border border-[#e5e5ea] rounded-lg p-10 text-center text-[#6e6e73]">Đang tải source...</div>;
+    return <div className="bg-white border border-[#e5e5ea] rounded-lg p-10 text-center text-[#6e6e73] flex justify-center items-center gap-2"><Loader2 className="animate-spin text-apple-blue" size={20} /> Đang tải source...</div>;
   }
 
   if (error) {
@@ -159,10 +188,10 @@ const AdminProductManager = ({ showToast }: { showToast: (message: string, type?
   }
 
   return (
-    <div className="bg-white border border-[#e5e5ea] rounded-lg overflow-x-auto">
+    <div className="bg-white border border-[#e5e5ea] rounded-lg overflow-x-auto p-5">
       <table className="w-full text-left">
         <thead>
-          <tr className="border-b border-[#e5e5ea]">
+          <tr className="border-b border-[#e5e5ea] bg-[#f9f9fb]">
             <th className="p-4 text-sm text-[#6e6e73]">Source</th>
             <th className="p-4 text-sm text-[#6e6e73]">Seller</th>
             <th className="p-4 text-sm text-[#6e6e73]">Giá</th>
@@ -178,7 +207,7 @@ const AdminProductManager = ({ showToast }: { showToast: (message: string, type?
             const locking = actionId === `lock-${product._id}`;
 
             return (
-              <tr key={product._id} className="border-b border-[#f2f2f2] last:border-b-0">
+              <tr key={product._id} className="border-b border-[#f2f2f2] last:border-b-0 hover:bg-[#f9f9fb] transition-colors">
                 <td className="p-4">
                   <div className="font-semibold text-[#1d1d1f]">{product.title}</div>
                   <div className="text-sm text-[#6e6e73]">{product.language}</div>
@@ -198,14 +227,14 @@ const AdminProductManager = ({ showToast }: { showToast: (message: string, type?
                     {product.isLocked ? 'Đã khóa' : 'Đang bán'}
                   </span>
                 </td>
-                <td className="p-4">
+                <td className="p-4 text-apple-dark align-middle">
                   <div className="flex gap-2">
                     {!product.isApproved && (
                       <button
                         type="button"
-                        onClick={() => approve(product._id)}
+                        onClick={() => handleApproveClick(product._id)}
                         disabled={!!actionId}
-                        className="inline-flex items-center gap-1 rounded-lg bg-[#0071e3] text-white px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#0071e3] text-white px-3 py-2 text-sm font-semibold disabled:opacity-60 hover:bg-[#0077ed] active:scale-95 transition-all cursor-pointer"
                       >
                         {approving && <Loader2 size={14} className="animate-spin" />}
                         Duyệt
@@ -213,9 +242,9 @@ const AdminProductManager = ({ showToast }: { showToast: (message: string, type?
                     )}
                     <button
                       type="button"
-                      onClick={() => toggleLock(product)}
+                      onClick={() => handleLockClick(product)}
                       disabled={!!actionId}
-                      className="inline-flex items-center gap-1 rounded-lg bg-[#fff0ef] text-[#d70015] px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                      className="inline-flex items-center gap-1 rounded-lg bg-[#fff0ef] text-[#d70015] px-3 py-2 text-sm font-semibold disabled:opacity-60 hover:bg-[#ffcdd2] active:scale-95 transition-all cursor-pointer"
                     >
                       {locking && <Loader2 size={14} className="animate-spin" />}
                       {product.isLocked ? 'Mở khóa' : 'Khóa'}
@@ -228,6 +257,35 @@ const AdminProductManager = ({ showToast }: { showToast: (message: string, type?
         </tbody>
       </table>
       {products.length === 0 && <div className="p-8 text-center text-[#6e6e73]">Chưa có source nào.</div>}
+
+      {/* ConfirmModal for Locking */}
+      <ConfirmModal
+        isOpen={isLockModalOpen}
+        onClose={() => {
+          setIsLockModalOpen(false);
+          setLockTargetProduct(null);
+        }}
+        onConfirm={confirmLock}
+        title={lockTargetProduct?.isLocked ? "Mở khóa sản phẩm" : "Khóa sản phẩm"}
+        message={lockTargetProduct?.isLocked 
+          ? "Bạn có chắc chắn muốn mở khóa sản phẩm này để tiếp tục bán công khai không?" 
+          : "Bạn có chắc chắn muốn khóa sản phẩm này lại không? Người mua sẽ không thể tìm thấy hoặc mua sản phẩm này."}
+        confirmText={lockTargetProduct?.isLocked ? "Mở khóa" : "Khóa sản phẩm"}
+        isDanger={!lockTargetProduct?.isLocked}
+      />
+
+      {/* ConfirmModal for Approving */}
+      <ConfirmModal
+        isOpen={isApproveModalOpen}
+        onClose={() => {
+          setIsApproveModalOpen(false);
+          setApproveTargetId(null);
+        }}
+        onConfirm={confirmApprove}
+        title="Duyệt sản phẩm"
+        message="Duyệt sản phẩm này để đăng bán công khai trên hệ thống?"
+        confirmText="Duyệt sản phẩm"
+      />
     </div>
   );
 };
@@ -277,6 +335,8 @@ const AdminPage: React.FC = () => {
       products: 'Quản lý source code',
       vouchers: 'Quản lý voucher',
       reviews: 'Quản lý đánh giá',
+      orders: 'Quản lý đơn hàng',
+      withdrawals: 'Quản lý rút tiền (Seller)',
     };
     return titles[activeTab];
   }, [activeTab]);
@@ -292,6 +352,8 @@ const AdminPage: React.FC = () => {
     { id: 'products', label: 'Source code', icon: <Package size={19} /> },
     { id: 'vouchers', label: 'Voucher', icon: <Gift size={19} /> },
     { id: 'reviews', label: 'Đánh giá', icon: <Star size={19} /> },
+    { id: 'orders', label: 'Đơn hàng', icon: <ShoppingBag size={19} /> },
+    { id: 'withdrawals', label: 'Yêu cầu rút tiền', icon: <Landmark size={19} /> },
   ];
 
   return (
@@ -347,9 +409,11 @@ const AdminPage: React.FC = () => {
         )}
         {activeTab === 'users' && <UserList />}
         {activeTab === 'approvals' && <ProductApproval />}
-        {activeTab === 'products' && <AdminProductManager showToast={showToast} />}
+        {activeTab === 'products' && <AdminProductManager />}
         {activeTab === 'vouchers' && <AdminVoucherManager />}
         {activeTab === 'reviews' && <ReviewManager />}
+        {activeTab === 'orders' && <AdminOrderManager />}
+        {activeTab === 'withdrawals' && <AdminWithdrawManager />}
       </main>
     </div>
   );

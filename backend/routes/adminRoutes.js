@@ -11,7 +11,11 @@ const {
     toggleProductLock,
     getReviews,
     deleteReview,
-} = require('./adminController');
+    getOrders,
+    getWithdrawRequests,
+    approveWithdrawRequest,
+    rejectWithdrawRequest,
+} = require('../controllers/adminController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 
 router.get('/overview', protect, admin, getOverview);
@@ -24,5 +28,9 @@ router.delete('/users/:id', protect, admin, deleteUser);
 router.patch('/products/:id/lock', protect, admin, toggleProductLock);
 router.get('/reviews', protect, admin, getReviews);
 router.delete('/reviews/:productId/:reviewId', protect, admin, deleteReview);
+router.get('/orders', protect, admin, getOrders);
+router.get('/withdrawals', protect, admin, getWithdrawRequests);
+router.patch('/withdrawals/:id/approve', protect, admin, approveWithdrawRequest);
+router.patch('/withdrawals/:id/reject', protect, admin, rejectWithdrawRequest);
 
 module.exports = router;

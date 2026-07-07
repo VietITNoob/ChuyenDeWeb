@@ -10,7 +10,7 @@ const {
     validateVoucher,
     approveVoucher,
     rejectVoucher,
-} = require('./voucherController');
+} = require('../controllers/voucherController');
 const { protect, seller, admin } = require('../middlewares/authMiddleware');
 
 router.get('/my', protect, seller, getMyVouchers);
