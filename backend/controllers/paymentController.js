@@ -2,6 +2,7 @@ const moment = require('moment');
 const crypto = require('crypto');
 const querystring = require('qs');
 const Order = require('../models/Order');
+const Voucher = require('../models/Voucher');
 const { sortObject } = require('../utils/vnpayHelper');
 
 // @desc    Tạo URL thanh toán VNPAY
@@ -17,6 +18,17 @@ const createPaymentUrl = async (req, res) => {
 
         // Nhận ID đơn hàng và số tiền từ Frontend gửi lên
         let { orderId, amount, bankCode } = req.body;
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({ message: 'Khong tim thay don hang.' });
+        }
+
+        if (order.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Ban khong co quyen thanh toan don hang nay.' });
+        }
+
+        amount = order.totalPrice;
 
         let tmnCode = process.env.vnp_TmnCode;
         let secretKey = process.env.vnp_HashSecret;
@@ -91,6 +103,9 @@ const vnpayReturn = async (req, res) => {
                         update_time: moment().format('YYYY-MM-DD HH:mm:ss')
                     };
                     await order.save();
+                    if (order.voucher) {
+                        await Voucher.findByIdAndUpdate(order.voucher, { $inc: { usedCount: 1 } });
+                    }
                 }
 
                 res.status(200).json({ code: vnp_Params['vnp_ResponseCode'], message: 'Giao dịch thành công' });

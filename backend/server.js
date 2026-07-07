@@ -10,6 +10,9 @@ const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const adminRoutes = require('./controllers/adminRoutes');
+const sellerRoutes = require('./controllers/sellerRoutes');
+const voucherRoutes = require('./controllers/voucherRoutes');
 
 dotenv.config();
 connectDB();
@@ -45,6 +48,9 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/seller', sellerRoutes);
+app.use('/api/vouchers', voucherRoutes);
 
 app.get('/', (req, res) => {
     res.send('CodeStore Backend API is running...');

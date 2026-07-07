@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema({
         enum: ['buyer', 'seller', 'admin'],
         default: 'buyer'
     },
+    isBlocked: { type: Boolean, required: true, default: false },
     googleId: { type: String, sparse: true },   // Google OAuth ID
     avatar: { type: String },                    // Ảnh đại diện từ Google
     resetPasswordToken: { type: String },

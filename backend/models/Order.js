@@ -9,6 +9,7 @@ const orderSchema = new mongoose.Schema({
         {
             title: { type: String, required: true },
             price: { type: Number, required: true },
+            quantity: { type: Number, required: true, default: 1 },
             product: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Product' },
         }
     ],
@@ -22,6 +23,9 @@ const orderSchema = new mongoose.Schema({
     },
 
     // Tổng tiền
+    voucher: { type: mongoose.Schema.Types.ObjectId, ref: 'Voucher' },
+    voucherCode: { type: String },
+    discountAmount: { type: Number, required: true, default: 0 },
     totalPrice: { type: Number, required: true, default: 0.0 },
 
     // Trạng thái đơn hàng (Rất quan trọng để mở khóa tính năng tải file)

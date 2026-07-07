@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../service/orderService';
 import { paymentService } from '../../service/paymentService';
+import { voucherService } from '../../service/voucherService';
 
 const CartPage = () => {
   const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
@@ -14,6 +15,9 @@ const CartPage = () => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPay'>('VNPay');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discountAmount: number } | null>(null);
+  const [voucherMessage, setVoucherMessage] = useState('');
 
   // --- POPUP STATES ---
   const [showPopup, setShowPopup] = useState(false);
@@ -25,7 +29,35 @@ const CartPage = () => {
   }, []);
 
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const finalPrice = Math.max(totalPrice - (appliedVoucher?.discountAmount || 0), 0);
   const formatVND = (price: number) => price.toLocaleString('vi-VN') + 'đ';
+
+  const handleApplyVoucher = async () => {
+    setVoucherMessage('');
+    setAppliedVoucher(null);
+
+    if (!voucherCode.trim()) {
+      setVoucherMessage('Vui lòng nhập mã voucher.');
+      return;
+    }
+
+    try {
+      const productIds = cartItems.map((item) => String(item._id || item.id));
+      const result = await voucherService.validateVoucher(voucherCode, productIds);
+      const matchedSet = new Set(result.matchedProducts.map(String));
+      const applicableTotal = cartItems
+        .filter((item) => matchedSet.has(String(item._id || item.id)))
+        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const discountAmount = result.voucher.discountType === 'percent'
+        ? Math.round(applicableTotal * result.voucher.discountValue / 100)
+        : Math.min(result.voucher.discountValue, applicableTotal);
+
+      setAppliedVoucher({ code: result.voucher.code, discountAmount });
+      setVoucherMessage(`Đã áp dụng voucher ${result.voucher.code}.`);
+    } catch (error: any) {
+      setVoucherMessage(error.response?.data?.message || 'Voucher không hợp lệ.');
+    }
+  };
 
   const showNotification = (status: 'success' | 'error', message: string, redirectPath?: string) => {
     setPopupStatus(status);
@@ -43,6 +75,11 @@ const CartPage = () => {
       return;
     }
 
+    if (user.role !== 'buyer') {
+      showNotification('error', 'Tài khoản admin hoặc người bán không được mua hàng.');
+      return;
+    }
+
     if (cartItems.length === 0) return;
 
     setIsProcessing(true);
@@ -52,20 +89,22 @@ const CartPage = () => {
         product: item._id || item.id as string,
         title: item.title,
         price: item.price,
+        quantity: item.quantity,
         image: item.image || '',
       }));
 
       const createdOrder = await orderService.createOrder({
         orderItems,
         paymentMethod,
-        totalPrice,
+        totalPrice: finalPrice,
+        voucherCode: appliedVoucher?.code,
       });
 
       if (paymentMethod === 'VNPay') {
         const paymentResult = await paymentService.createPaymentUrl({
           orderId: createdOrder._id,
           orderInfo: `Thanh toan don hang CodeStore #${createdOrder._id}`,
-          amount: totalPrice,
+          amount: createdOrder.totalPrice,
         });
 
         clearCart();
@@ -110,7 +149,7 @@ const CartPage = () => {
 
       <section className="text-center py-20 px-5 bg-[#f5f5f7] border-b border-[#d2d2d7] mb-10">
         <h1 className="text-[40px] leading-[1.1] font-bold max-w-[800px] mx-auto mb-6 tracking-[-0.005em]">
-          Tổng giá trị giỏ hàng của bạn là <span className="font-bold text-apple-dark">{formatVND(totalPrice)}.</span>
+          Tổng giá trị giỏ hàng của bạn là <span className="font-bold text-apple-dark">{formatVND(finalPrice)}.</span>
         </h1>
         <p className="text-[17px] text-apple-dark mb-6">Vận chuyển miễn phí (Gửi qua Email ngay lập tức).</p>
         <button 
@@ -177,6 +216,30 @@ const CartPage = () => {
             <span className="text-apple-dark">Tổng phụ</span>
             <span className="text-apple-dark">{formatVND(totalPrice)}</span>
           </div>
+          <div className="mb-4 rounded-xl border border-[#d2d2d7] p-4">
+            <div className="text-[14px] font-semibold text-apple-dark mb-2">Mã voucher</div>
+            <div className="flex flex-col md:flex-row gap-2">
+              <input
+                value={voucherCode}
+                onChange={(event) => {
+                  setVoucherCode(event.target.value.toUpperCase());
+                  setAppliedVoucher(null);
+                }}
+                placeholder="Nhập mã voucher"
+                className="flex-1 rounded-xl border border-[#d2d2d7] px-4 py-3 outline-none focus:border-apple-blue"
+              />
+              <button type="button" onClick={handleApplyVoucher} className="rounded-xl bg-[#1d1d1f] text-white px-5 py-3 font-semibold">
+                Áp dụng
+              </button>
+            </div>
+            {voucherMessage && <div className="text-[13px] text-apple-gray mt-2">{voucherMessage}</div>}
+          </div>
+          {appliedVoucher && (
+            <div className="flex justify-between mb-4 text-[17px]">
+              <span className="text-apple-dark">Giảm giá ({appliedVoucher.code})</span>
+              <span className="text-[#1e8e3e]">-{formatVND(appliedVoucher.discountAmount)}</span>
+            </div>
+          )}
           <div className="flex justify-between mb-4 text-[17px]">
             <span className="text-apple-dark">Vận chuyển (Email)</span>
             <span className="text-apple-dark">MIỄN PHÍ</span>
@@ -186,7 +249,7 @@ const CartPage = () => {
 
           <div className="flex flex-col md:flex-row justify-between items-end mt-2.5">
             <span className="text-2xl font-semibold">Thanh toán toàn bộ</span>
-            <span className="text-4xl font-bold tracking-[-0.02em]">{formatVND(totalPrice)}</span>
+            <span className="text-4xl font-bold tracking-[-0.02em]">{formatVND(finalPrice)}</span>
           </div>
 
           {/* --- CHỌN PHƯƠNG THỨC THANH TOÁN --- */}
@@ -213,7 +276,7 @@ const CartPage = () => {
           <div className="text-right text-[14px] text-apple-gray mt-2">
              hoặc
              <div className="text-[17px] font-semibold mt-1 text-apple-dark">
-                Thanh toán Hàng Tháng {formatVND(Math.round(totalPrice / 12))}/tháng*
+                Thanh toán Hàng Tháng {formatVND(Math.round(finalPrice / 12))}/tháng*
              </div>
              <div className="mt-1 text-[12px]">Lãi suất 0% trong 12 tháng. <a href="#" className="text-apple-blue hover:underline">Tìm hiểu thêm</a></div>
           </div>

@@ -6,10 +6,11 @@ const Order = require('../models/Order');
 const getProducts = async (req, res) => {
     try {
         const keyword = req.query.keyword ? {
-            title: {
-                $regex: req.query.keyword,
-                $options: 'i'
-            }
+            $or: [
+                { title: { $regex: req.query.keyword, $options: 'i' } },
+                { platform: { $regex: req.query.keyword, $options: 'i' } },
+                { language: { $regex: req.query.keyword, $options: 'i' } }
+            ]
         } : {};
 
         // Pagination
@@ -17,10 +18,10 @@ const getProducts = async (req, res) => {
         const limit = Number(req.query.limit) || 12;
         const skip = (page - 1) * limit;
 
-        const totalProducts = await Product.countDocuments({ ...keyword, isApproved: true });
+        const totalProducts = await Product.countDocuments({ ...keyword, isApproved: true, isLocked: { $ne: true } });
         const pages = Math.ceil(totalProducts / limit);
 
-        const products = await Product.find({ ...keyword, isApproved: true })
+        const products = await Product.find({ ...keyword, isApproved: true, isLocked: { $ne: true } })
             .populate('seller', 'name email')
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -38,7 +39,7 @@ const getProductById = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id)
             .populate('seller', 'name email');
-        if (product) {
+        if (product && product.isLocked !== true) {
             res.json(product);
         } else {
             res.status(404).json({ message: 'Không tìm thấy sản phẩm' });

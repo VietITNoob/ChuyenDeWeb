@@ -17,6 +17,10 @@ const protect = async (req, res, next) => {
             // Tìm user trong database và gắn vào req.user (bỏ qua field password)
             req.user = await User.findById(decoded.id).select('-password');
 
+            if (!req.user || req.user.isBlocked) {
+                return res.status(403).json({ message: 'Tai khoan cua ban da bi khoa.' });
+            }
+
             next(); // Cho phép đi tiếp đến Controller
         } catch (error) {
             console.error(error);

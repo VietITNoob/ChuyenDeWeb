@@ -16,6 +16,8 @@ import ForgotPasswordPage from '../components/Auth/Forgot/ForgotPage.tsx';
 import ResetPasswordPage from '../components/Auth/ResetPassword/ResetPasswordPage.tsx';
 import VNPayReturnPage from '../pages/Payment/VNPayReturnPage.tsx';
 import AdminPage from '../pages/Admin/AdminPage.tsx';
+import SellerPage from '../pages/Seller/SellerPage.tsx';
+import RoleRoute from '../components/Route/RoleRoute.tsx';
 
 
 export const router = createBrowserRouter([
@@ -83,7 +85,19 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: <AdminPage />
+    element: (
+      <RoleRoute allowedRoles={['admin']}>
+        <AdminPage />
+      </RoleRoute>
+    )
+  },
+  {
+    path: '/seller',
+    element: (
+      <RoleRoute allowedRoles={['seller']}>
+        <SellerPage />
+      </RoleRoute>
+    )
   },
 
 
